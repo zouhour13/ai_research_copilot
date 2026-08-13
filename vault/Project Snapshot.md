@@ -8,13 +8,13 @@ tags:
 
 ## Current repository snapshot
 
-_Generated automatically on 2026-08-13 20:17 UTC. Revision: `b978dd1`._
+_Generated automatically on 2026-08-13 22:29 UTC. Revision: `1f8b3e5`._
 
 | Metric | Current value |
 | --- | --- |
 | Project | Ai Research Copilot |
-| Version-controlled files | 111 |
-| Top-level areas | `backend/` (55), `frontend/` (38), `notebooks/` (6), `vault/` (6), `.github/` (1), `scripts/` (1) |
+| Version-controlled files | 114 |
+| Top-level areas | `backend/` (55), `frontend/` (41), `notebooks/` (6), `vault/` (6), `.github/` (1), `scripts/` (1) |
 | Common file types | `.py` (54), `.tsx` (17), `.md` (8), `.ts` (7), `.json` (6), `.svg` (5), `.ipynb` (4), `(no extension)` (3) |
 
 ### Documentation automation
