@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Cpu, ChevronDown, Check, Zap } from "lucide-react";
+import { Cpu, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { getModels } from "@/lib/api";
@@ -20,7 +20,7 @@ const PROVIDER_ICONS: Record<string, string> = {
   local: "⊞",
 };
 
-export default function ModelSelector() {
+export default function ModelSelector({ placement = "sidebar" }: { placement?: "sidebar" | "topbar" }) {
   const { currentProvider, currentModel, setModel } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [providers, setProviders] = useState<string[]>(["gemini", "openai", "claude", "local"]);
@@ -47,7 +47,7 @@ export default function ModelSelector() {
   const shortModel = currentModel.split("-").slice(0, 3).join("-");
 
   return (
-    <div className="model-selector" ref={dropdownRef}>
+    <div className={`model-selector model-selector-${placement}`} ref={dropdownRef}>
       <button
         className="model-selector-btn"
         onClick={() => setIsOpen((v) => !v)}

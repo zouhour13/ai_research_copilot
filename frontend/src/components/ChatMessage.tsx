@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Copy, Check, Cpu, User, RefreshCw } from "lucide-react";
+import { Copy, Check, Cpu, User } from "lucide-react";
 import { useState } from "react";
 import SourceCard from "./SourceCard";
 import ThinkingDots from "./ThinkingDots";

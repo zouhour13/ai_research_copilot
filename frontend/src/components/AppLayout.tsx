@@ -6,6 +6,7 @@ import ChatWindow from "./ChatWindow";
 import ChatInput from "./ChatInput";
 import RightPanel from "./layout/RightPanel";
 import AgentActivityBar from "./agent/AgentActivityBar";
+import ModelSelector from "./ui/ModelSelector";
 import {
   Globe,
   MessageSquare,
@@ -13,7 +14,6 @@ import {
   Menu,
   PanelRight,
   Cpu,
-  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,8 +24,6 @@ export default function AppLayout() {
     isSidebarOpen,
     isResearchMode,
     isRightPanelOpen,
-    currentProvider,
-    currentModel,
     toggleSidebar,
     toggleRightPanel,
     setRightPanelTab,
@@ -43,9 +41,6 @@ export default function AppLayout() {
     if (!isRightPanelOpen) toggleRightPanel();
   };
 
-  // Short model label for topbar badge
-  const modelLabel = currentModel.split("-").slice(0, 2).join("-");
-
   return (
     <div className="app-root">
       {/* ── Sidebar ─────────────────────────────────────────────── */}
@@ -55,7 +50,7 @@ export default function AppLayout() {
             key="sidebar"
             className="sidebar-panel"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 268, opacity: 1 }}
+            animate={{ width: 288, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           >
@@ -117,13 +112,7 @@ export default function AppLayout() {
           </div>
 
           <div className="topbar-right">
-            {/* Model badge */}
-            <div className="topbar-model-badge" title={`${currentProvider} / ${currentModel}`}>
-              <span className="topbar-model-badge-dot" />
-              <span className="capitalize">{currentProvider}</span>
-              <span className="text-muted-2 hidden sm:inline">·</span>
-              <span className="hidden sm:inline opacity-70">{modelLabel}</span>
-            </div>
+            <ModelSelector placement="topbar" />
 
             {/* Sources button */}
             {latestSources.length > 0 && (
@@ -182,7 +171,7 @@ export default function AppLayout() {
             key="right-panel"
             className="right-panel"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 340, opacity: 1 }}
+            animate={{ width: 360, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           >

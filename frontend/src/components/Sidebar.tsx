@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import {
   Plus,
@@ -19,7 +19,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import ModelSelector from "@/components/ui/ModelSelector";
 import { toast } from "sonner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -29,7 +28,10 @@ async function downloadExport(sessionId: number, format: "pdf" | "docx", filenam
     const res = await fetch(`${API_BASE}/export/${sessionId}?format=${format}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).detail || `Export failed (${res.status})`);
+      const detail = typeof err === "object" && err !== null && "detail" in err && typeof err.detail === "string"
+        ? err.detail
+        : `Export failed (${res.status})`;
+      throw new Error(detail);
     }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -121,7 +123,7 @@ export default function Sidebar() {
       {/* Collapse button */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-4 right-[-13px] z-50 w-6 h-6 flex items-center justify-center rounded-full bg-surface-2 border border-border text-muted hover:text-foreground hover:border-border-2 transition-all shadow-md"
+        className="sidebar-collapse-btn absolute top-5 right-4 z-50 w-8 h-8 flex items-center justify-center rounded-xl bg-surface-2 border border-border text-muted hover:text-foreground hover:border-border-2 transition-all shadow-md"
         aria-label="Close sidebar"
       >
         <ChevronLeft size={11} />
@@ -173,7 +175,7 @@ export default function Sidebar() {
               placeholder="Search conversations…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs bg-surface border border-border rounded-lg text-foreground placeholder:text-muted-2 focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
+              className="sidebar-search-input w-full pl-8 pr-3 py-2 text-xs bg-surface border border-border rounded-lg text-foreground placeholder:text-muted-2 focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
             />
           </div>
         </div>
@@ -375,12 +377,9 @@ export default function Sidebar() {
         </div>
 
         {/* ── Footer ──────────────────────────────────────────── */}
-        <div className="p-3 border-t border-border space-y-2 flex-shrink-0">
-          {/* Model selector */}
-          <ModelSelector />
-
-          {/* User row */}
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-surface-hover cursor-pointer transition-all group">
+        <div className="sidebar-footer p-3 border-t border-border flex-shrink-0">
+          {/* Plan / user row */}
+          <div className="sidebar-plan flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl hover:bg-surface-hover cursor-pointer transition-all group">
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 shadow-md"
               style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)" }}
             >
@@ -388,7 +387,7 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-foreground leading-none">User</p>
-              <p className="text-[10px] text-muted mt-0.5">Free Plan</p>
+              <p className="text-[10px] text-muted mt-0.5">Free plan · Research ready</p>
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-done flex-shrink-0" style={{ boxShadow: "0 0 4px var(--done-color)" }} />
           </div>

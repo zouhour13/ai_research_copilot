@@ -10,7 +10,6 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  X,
   Paperclip,
   ExternalLink,
 } from "lucide-react";

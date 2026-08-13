@@ -9,7 +9,6 @@ import {
   Brain,
   Download,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 
@@ -19,54 +18,36 @@ const SUGGESTIONS = [
     label: "Research a topic",
     prompt: "Research the latest advances in quantum computing and summarize key findings",
     mode: "research" as const,
-    color: "from-blue-500/20 to-accent/10",
-    iconColor: "text-blue-400",
-    border: "hover:border-blue-500/30",
   },
   {
     icon: FileText,
     label: "Analyze a document",
     prompt: "Upload a PDF and I'll extract key insights, findings, and citations",
     mode: "chat" as const,
-    color: "from-teal/20 to-emerald-500/10",
-    iconColor: "text-teal-400",
-    border: "hover:border-teal-500/30",
   },
   {
     icon: BookOpen,
     label: "Summarize research",
     prompt: "What are the key differences between RAG and fine-tuning for LLMs?",
     mode: "research" as const,
-    color: "from-violet-500/20 to-accent-2/10",
-    iconColor: "text-violet-400",
-    border: "hover:border-violet-500/30",
   },
   {
     icon: GitCompare,
     label: "Compare findings",
     prompt: "Compare transformer and state-space models for sequence modeling",
     mode: "research" as const,
-    color: "from-orange-500/20 to-yellow-500/10",
-    iconColor: "text-orange-400",
-    border: "hover:border-orange-500/30",
   },
   {
     icon: Brain,
     label: "Explain a concept",
     prompt: "Explain how vector embeddings work and why they are useful for semantic search",
     mode: "chat" as const,
-    color: "from-pink-500/20 to-rose-500/10",
-    iconColor: "text-pink-400",
-    border: "hover:border-pink-500/30",
   },
   {
     icon: Download,
     label: "Export research",
     prompt: "Summarize everything we've discussed so I can export it as a report",
     mode: "chat" as const,
-    color: "from-accent/20 to-accent-2/10",
-    iconColor: "text-accent",
-    border: "hover:border-accent/30",
   },
 ];
 
@@ -88,13 +69,13 @@ export default function EmptyState() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 py-8 text-center select-none">
+    <div className="empty-state flex flex-col items-center justify-center h-full px-6 py-10 text-center select-none">
       {/* Hero logo */}
       <motion.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.05 }}
-        className="relative mb-6"
+        className="relative mb-7"
       >
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -122,9 +103,9 @@ export default function EmptyState() {
         initial={{ y: 12, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.12, duration: 0.35 }}
-        className="mb-2"
+        className="mb-3"
       >
-        <h1 className="text-2xl font-bold tracking-tight mb-2 gradient-text">
+        <h1 className="text-[30px] font-bold tracking-tight mb-2 gradient-text">
           Nexus Research
         </h1>
         <p className="text-sm max-w-xs leading-relaxed" style={{ color: "var(--muted)" }}>
@@ -143,7 +124,7 @@ export default function EmptyState() {
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.3 }}
-        className="flex flex-wrap items-center justify-center gap-2 mb-7"
+        className="flex flex-wrap items-center justify-center gap-2 mb-8"
       >
         {CAPABILITIES.map((cap, i) => (
           <div
@@ -166,7 +147,7 @@ export default function EmptyState() {
         initial={{ y: 16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.24, duration: 0.35 }}
-        className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"
+        className="w-full max-w-[860px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
       >
         {SUGGESTIONS.map((s, i) => (
           <motion.button
@@ -177,22 +158,14 @@ export default function EmptyState() {
             whileHover={{ y: -3, transition: { duration: 0.15 } }}
             whileTap={{ scale: 0.97 }}
             onClick={() => handleSuggestion(s.prompt)}
-            className={`suggestion-card ${s.border} group`}
+            className="suggestion-card group"
             id={`suggestion-${i}`}
           >
-            {/* Gradient top accent */}
-            <div
-              className={`absolute top-0 left-0 right-0 h-px rounded-t-xl bg-gradient-to-r ${s.color} opacity-60`}
-            />
-
             <div className="flex items-start gap-3 relative">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-                style={{
-                  background: `linear-gradient(135deg, ${s.color.includes("blue") ? "rgba(59,130,246,0.15)" : s.color.includes("teal") ? "rgba(20,184,166,0.15)" : s.color.includes("violet") ? "rgba(139,92,246,0.15)" : s.color.includes("orange") ? "rgba(251,146,60,0.15)" : s.color.includes("pink") ? "rgba(236,72,153,0.15)" : "rgba(99,102,241,0.15)"} 0%, transparent 100%)`,
-                }}
+                className="suggestion-icon w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
               >
-                <s.icon size={15} className={s.iconColor} />
+                <s.icon size={16} />
               </div>
               <div className="text-left flex-1 min-w-0">
                 <p className="text-xs font-semibold mb-1 flex items-center gap-1.5"

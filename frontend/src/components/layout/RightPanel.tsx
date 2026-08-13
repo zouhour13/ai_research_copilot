@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Brain, Activity, X } from "lucide-react";
 import { useAppStore } from "@/lib/store";

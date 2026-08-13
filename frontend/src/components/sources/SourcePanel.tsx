@@ -70,7 +70,7 @@ export default function SourcePanel({ sources }: SourcePanelProps) {
                 {/* Icon: favicon or type icon */}
                 <span className="source-type-icon flex-shrink-0">
                   {isDoc ? (
-                    <FileText size={12} style={{ color: "var(--teal)" }} />
+                    <FileText size={12} style={{ color: "var(--accent)" }} />
                   ) : faviconUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img

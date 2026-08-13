@@ -10,7 +10,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { AgentStep } from "@/types/agent";
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
   search: <Search size={12} />,

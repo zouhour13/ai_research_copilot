@@ -13,7 +13,7 @@ export default function MemoryViewer() {
 
   useEffect(() => {
     if (activeSessionId) loadMemory(activeSessionId);
-  }, [activeSessionId]);
+  }, [activeSessionId, loadMemory]);
 
   const handleSearch = () => {
     if (activeSessionId) loadMemory(activeSessionId, searchQuery);

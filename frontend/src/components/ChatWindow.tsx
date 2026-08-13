@@ -9,7 +9,7 @@ import EmptyState from "./EmptyState";
 import { useState } from "react";
 
 export default function ChatWindow() {
-  const { messages, isLoading } = useAppStore();
+  const { messages } = useAppStore();
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);

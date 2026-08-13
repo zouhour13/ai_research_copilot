@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { Search, FileText, Brain, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { AgentStep } from "@/types/agent";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   search: <Search size={12} />,
@@ -73,7 +72,9 @@ export default function AgentLogPanel() {
               className="absolute -left-[21px] top-2.5 w-2.5 h-2.5 rounded-full border-2 flex-shrink-0"
               style={{
                 borderColor: DOT_COLORS[step.step_type] ?? "var(--border-2)",
-                background: `${DOT_COLORS[step.step_type]}22` ?? "var(--surface)",
+                background: DOT_COLORS[step.step_type]
+                  ? `${DOT_COLORS[step.step_type]}22`
+                  : "var(--surface)",
               }}
             />
 

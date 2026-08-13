@@ -11,6 +11,17 @@ A full-stack AI research workspace that combines conversational assistance, web-
 - PDF and DOCX report exports
 - Next.js frontend and FastAPI backend
 
+## Interface
+
+The frontend uses a responsive dark research-workspace interface with an indigo-violet accent system. It retains the sidebar and chat-panel information architecture while providing:
+
+- grouped, searchable conversation history and plan status in the sidebar;
+- an interactive Gemini model selector, source control, panel control, and New Chat action in the top bar;
+- document upload, research-mode switching, and send controls in a floating chat composer;
+- six research shortcuts, source citations, memory, and agent activity surfaces.
+
+Desktop UI reference captures are included in [`frontend/public/mockups/`](frontend/public/mockups/): welcome state, active research conversation, and expanded history.
+
 ## Documentation
 
 Project knowledge is maintained in the included Obsidian vault. Open the `vault` folder directly in Obsidian, then begin with [Home](vault/00-Home.md).
@@ -59,6 +70,10 @@ npm run dev
 ```
 
 Open `http://localhost:3000` in your browser.
+
+## Deployment
+
+The repository currently has no committed Vercel configuration or project link. For a production deployment, configure the frontend project in Vercel and set the frontend API base URL (`NEXT_PUBLIC_API_URL`) together with the backend's required `GEMINI_API_KEY` and `EXA_API_KEY` in the appropriate secret stores. Do not commit these values.
 
 ## Repository automation
 

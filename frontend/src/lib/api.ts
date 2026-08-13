@@ -1,7 +1,14 @@
-import { Session, Message, ChatResponse } from "@/types/chat";
+import { Session, Message, Source } from "@/types/chat";
 import { AgentStep } from "@/types/agent";
+import { MemoryItem } from "@/types/memory";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+function errorDetail(error: unknown, fallback: string): string {
+  return typeof error === "object" && error !== null && "detail" in error && typeof error.detail === "string"
+    ? error.detail
+    : fallback;
+}
 
 // ─── Sessions ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +54,7 @@ export async function deleteSession(id: number): Promise<void> {
  */
 export async function updateSessionMode(
   id: number,
-  mode: "chat" | "research"
+  mode: "chat" | "research" | "file" | "hybrid"
 ): Promise<Session> {
   const res = await fetch(`${API_BASE}/sessions/${id}/mode`, {
     method: "PATCH",
@@ -64,7 +71,7 @@ export async function sendMessageStream(
   sessionId: number,
   content: string,
   onChunk: (chunk: string) => void,
-  onSources: (sources: any[]) => void,
+  onSources: (sources: Source[]) => void,
   onTitle: (title: string) => void,
   onAgentStep: (step: AgentStep) => void
 ): Promise<void> {
@@ -76,7 +83,7 @@ export async function sendMessageStream(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).detail || "Failed to send message");
+    throw new Error(errorDetail(err, "Failed to send message"));
   }
   if (!res.body) return;
 
@@ -125,7 +132,7 @@ export async function exportSession(
   const res = await fetch(`${API_BASE}/export/${sessionId}?format=${format}`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).detail || `Export failed (${res.status})`);
+    throw new Error(errorDetail(err, `Export failed (${res.status})`));
   }
   return res.blob();
 }
@@ -144,7 +151,7 @@ export async function uploadDocument(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).detail || "Failed to upload document");
+    throw new Error(errorDetail(err, "Failed to upload document"));
   }
   return res.json();
 }
@@ -154,7 +161,7 @@ export async function uploadDocument(
 export async function getMemory(
   sessionId: number,
   query = ""
-): Promise<{ memories: any[]; count: number }> {
+): Promise<{ memories: MemoryItem[]; count: number }> {
   const url = query
     ? `${API_BASE}/memory/${sessionId}?query=${encodeURIComponent(query)}`
     : `${API_BASE}/memory/${sessionId}`;
