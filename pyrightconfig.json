@@ -1,0 +1,9 @@
+{
+  "venvPath": ".",
+  "venv": "backend/venv",
+  "extraPaths": ["backend"],
+  "include": ["backend"],
+  "exclude": ["backend/venv", "frontend", "notebooks"],
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true
+}

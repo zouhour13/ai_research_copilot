@@ -1,0 +1,48 @@
+# AI Research Copilot — Backend
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# ChromaDB data
+chroma_data/
+
+# Uploaded files
+uploads/
+
+# Exported reports
+exports/
+
+# Environment variables (NEVER commit real keys)
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

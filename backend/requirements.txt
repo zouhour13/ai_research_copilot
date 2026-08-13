@@ -1,0 +1,34 @@
+# Core
+fastapi==0.128.0
+uvicorn==0.40.0
+sqlmodel==0.0.31
+pydantic==2.12.5
+python-dotenv==1.2.1
+httpx==0.28.1
+anyio==4.12.1
+starlette==0.50.0
+python-multipart>=0.0.9
+
+# LLM & Embeddings
+google-generativeai==0.8.6
+langchain-core
+langchain
+langchain-google-genai
+langchain-community
+
+# Vector store
+chromadb>=0.4.24
+
+# Document processing
+pymupdf
+langchain-text-splitters
+pandas
+openpyxl
+
+# Search
+exa-py==2.0.2
+
+# Export
+# P0-4 FIX: Use fpdf2 — the export_service.py imports from fpdf, not reportlab
+fpdf2
+python-docx

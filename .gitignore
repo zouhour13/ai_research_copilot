@@ -1,0 +1,48 @@
+# AI Research Copilot — Root
+
+# Environment (NEVER commit real keys)
+.env
+.env.*
+!.env.example
+
+# Node / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+
+# Python / Backend
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+backend/chroma_data/
+backend/uploads/
+backend/exports/
+*.py[cod]
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local project data and generated artifacts
+/uploads/
+/exports/
+
+# Obsidian local layout (each contributor keeps their own workspace)
+vault/.obsidian/workspace.json
+
+# Local editor artifacts
+*.lnk
+**/Untitled
