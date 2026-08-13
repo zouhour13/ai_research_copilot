@@ -40,8 +40,8 @@ Thumbs.db
 /uploads/
 /exports/
 
-# Obsidian local layout (each contributor keeps their own workspace)
-vault/.obsidian/workspace.json
+# Obsidian settings are per-user and change as the vault is used.
+vault/.obsidian/
 
 # Local editor artifacts
 *.lnk
