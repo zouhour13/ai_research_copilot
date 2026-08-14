@@ -8,7 +8,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
 
-from app.vectorstore.collections import get_or_create, col_docs
+from app.vectorstore.collections import col_docs, WEB_CACHE_COLLECTION
+from app.vectorstore.client import upsert_vectors
 
 # Shared embeddings model (same as langchain/core/embeddings.py)
 _embeddings: GoogleGenerativeAIEmbeddings | None = None
@@ -54,7 +55,6 @@ def ingest_document(
     if not chunks:
         return 0
 
-    col = get_or_create(col_docs(session_id))
     vectors = embed_texts(chunks)
 
     filename = metadata.get("filename", "doc")
@@ -65,19 +65,14 @@ def ingest_document(
     ]
     metas = [dict(metadata, chunk_idx=i) for i in range(len(chunks))]
 
-    col.upsert(ids=ids, embeddings=vectors, documents=chunks, metadatas=metas)
+    upsert_vectors(col_docs(session_id), ids, vectors, chunks, metas)
     return len(chunks)
 
 
 def ingest_web_result(url: str, title: str, content: str, query: str) -> None:
     """Cache a web search result in the shared web_cache collection."""
-    from app.vectorstore.collections import get_or_create, WEB_CACHE_COLLECTION
-    col = get_or_create(WEB_CACHE_COLLECTION)
     doc_id = hashlib.md5(url.encode()).hexdigest()
     vector = embed_query(content[:512])
-    col.upsert(
-        ids=[doc_id],
-        embeddings=[vector],
-        documents=[content[:1000]],
-        metadatas=[{"url": url, "title": title, "query": query, "fetched_at": int(time.time())}],
-    )
+    upsert_vectors(WEB_CACHE_COLLECTION, [doc_id], [vector], [content[:1000]], [
+        {"url": url, "title": title, "query": query, "fetched_at": int(time.time())}
+    ])

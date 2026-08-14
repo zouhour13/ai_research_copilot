@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI Research Copilot",
     version="3.1",
-    description="Production AI Research Copilot with Agentic RAG, ChromaDB, and multi-tier memory.",
+    description="Production AI Research Copilot with Agentic RAG, Supabase pgvector, and multi-tier memory.",
     lifespan=lifespan,
     redirect_slashes=False,
 )
@@ -91,7 +91,7 @@ def root():
     return {
         "status": "AI Research Copilot API is running",
         "version": "3.1",
-        "features": ["agentic-rag", "chromadb", "multi-tier-memory", "llm-abstraction"],
+        "features": ["agentic-rag", "supabase-pgvector", "multi-tier-memory", "llm-abstraction"],
     }
 
 

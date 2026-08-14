@@ -169,7 +169,8 @@ async def extract_and_store_facts(session_id: int, user_msg: str, ai_msg: str) -
     This is called as a background task after every exchange.
     """
     try:
-        from app.vectorstore.collections import get_or_create, GLOBAL_FACTS_COLLECTION
+        from app.vectorstore.collections import GLOBAL_FACTS_COLLECTION
+        from app.vectorstore.client import upsert_vectors
         from app.vectorstore.embedding_pipeline import embed_texts
 
         logger.info("[MEMORY] Saving semantic facts from session %d exchange...", session_id)
@@ -183,7 +184,6 @@ async def extract_and_store_facts(session_id: int, user_msg: str, ai_msg: str) -
             return
 
         # Embed and store each fact in the global collection
-        col = get_or_create(GLOBAL_FACTS_COLLECTION)
         import asyncio
         vectors = await asyncio.to_thread(embed_texts, facts)
         now = int(time.time())
@@ -200,12 +200,7 @@ async def extract_and_store_facts(session_id: int, user_msg: str, ai_msg: str) -
                 "type": "semantic_fact",
             })
 
-        col.upsert(
-            ids=ids,
-            embeddings=vectors,
-            documents=facts,
-            metadatas=metas,
-        )
+        upsert_vectors(GLOBAL_FACTS_COLLECTION, ids, vectors, facts, metas)
 
         logger.info(
             "[MEMORY] Saved successfully — %d facts stored in global collection (session %d): %s",

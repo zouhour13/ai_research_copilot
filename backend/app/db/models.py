@@ -11,6 +11,7 @@ class Session(SQLModel, table=True):
     mode: ChatMode
     file_search_store_name: Optional[str] = None
     file_name: Optional[str] = None
+    file_storage_path: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

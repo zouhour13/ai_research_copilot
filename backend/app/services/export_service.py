@@ -17,6 +17,7 @@ Features:
 import json
 import os
 import re
+import tempfile
 from datetime import datetime
 from typing import List, Optional
 
@@ -28,8 +29,9 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from app.db.models import Message
 
-EXPORT_DIR = os.path.join(os.getcwd(), "exports")
-os.makedirs(EXPORT_DIR, exist_ok=True)
+# Generated reports use only the instance temp directory before upload to
+# Supabase Storage; no persistent local directory is required on Render.
+EXPORT_DIR = tempfile.gettempdir()
 
 # ── Design Tokens ─────────────────────────────────────────────────────────────
 PAGE_W = 210   # A4 width mm

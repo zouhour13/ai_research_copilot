@@ -1,18 +1,11 @@
+"""Deprecated compatibility module.
+
+The application no longer creates a local Chroma persistence directory. New
+code must use :mod:`app.vectorstore`, which stores vectors in Supabase pgvector.
 """
-Backwards-compatibility shim.
-Existing code that does: from app.langchain.vectorstore.chroma import get_vectorstore
-continues to work. New code should use app.vectorstore directly.
-"""
-import os
-from langchain_community.vectorstores import Chroma
-from app.langchain.core.embeddings import embeddings
-
-CHROMA_PERSIST_DIR = os.path.join(os.getcwd(), "chroma_data")
 
 
-def get_vectorstore(collection_name: str = "default") -> Chroma:
-    return Chroma(
-        collection_name=collection_name,
-        embedding_function=embeddings,
-        persist_directory=CHROMA_PERSIST_DIR,
+def get_vectorstore(collection_name: str = "default"):
+    raise RuntimeError(
+        "Local Chroma is no longer supported. Use app.vectorstore retrieval helpers."
     )

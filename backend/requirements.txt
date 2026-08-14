@@ -17,7 +17,8 @@ langchain-google-genai
 langchain-community
 
 # Vector store
-chromadb>=0.4.24
+psycopg[binary]>=3.2,<4
+supabase>=2.11,<3
 
 # Document processing
 pymupdf

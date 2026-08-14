@@ -129,33 +129,21 @@ def main():
     print(f"    file_name: {session['file_name']}")
     print(f"    file_search_store_name: {session['file_search_store_name']}")
 
-    # Step 5: Verify ChromaDB has chunks
-    print("\n[5] Verifying ChromaDB chunks...")
+    # Step 5: Verify Supabase pgvector retrieval
+    print("\n[5] Verifying Supabase pgvector chunks...")
     try:
         import sys
         sys.path.insert(0, os.path.dirname(__file__))
         from app.vectorstore.retrieval import retrieve_docs, format_docs_for_prompt
-        from app.vectorstore.collections import col_docs
-        from app.vectorstore.client import get_chroma_client
-        
-        col_name = col_docs(session_id)
-        client = get_chroma_client()
-        try:
-            col = client.get_collection(col_name)
-            count = col.count()
-            print(f"    Collection '{col_name}' has {count} chunks")
-        except Exception as e:
-            print(f"    Collection error: {e}")
-        
         docs = retrieve_docs(session_id, "main findings software revenue growth", k=5)
         print(f"    Retrieved {len(docs)} docs for query 'main findings'")
         if docs:
             for i, d in enumerate(docs, 1):
                 print(f"    [{i}] Score: {d['score']:.3f} | Content: {d['content'][:80]}...")
         else:
-            print("    WARNING: No docs retrieved! ChromaDB query returned nothing.")
+            print("    WARNING: No docs retrieved! pgvector query returned nothing.")
     except Exception as e:
-        print(f"    ChromaDB check error: {e}")
+        print(f"    pgvector check error: {e}")
         import traceback
         traceback.print_exc()
 

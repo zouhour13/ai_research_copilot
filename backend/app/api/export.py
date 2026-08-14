@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session as DBSession, select
 from app.db.database import engine
 from app.db.models import Session, Message
 from app.services.export_service import generate_pdf_report, generate_docx_report
+from app.services.supabase_service import upload_bytes, create_download_url
 import os
 
 router = APIRouter(prefix="/export", tags=["Export"])
@@ -39,11 +40,10 @@ def export_session(session_id: int, format: str = "pdf", db: DBSession = Depends
         else:
             raise HTTPException(status_code=400, detail="Unsupported format. Use 'pdf' or 'docx'.")
             
-        return FileResponse(
-            path=file_path,
-            filename=filename,
-            media_type=media_type,
-            headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
-        )
+        with open(file_path, "rb") as generated:
+            storage_path = f"exports/session_{session_id}/{os.path.basename(file_path)}"
+            upload_bytes(storage_path, generated.read(), media_type)
+        os.remove(file_path)
+        return RedirectResponse(create_download_url(storage_path), status_code=307)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

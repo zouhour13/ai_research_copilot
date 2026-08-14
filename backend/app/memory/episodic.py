@@ -10,7 +10,8 @@ import asyncio
 from sqlmodel import Session as DBSession, select
 from app.db.models import Message
 from app.db.database import engine
-from app.vectorstore.collections import get_or_create, col_memory
+from app.vectorstore.collections import col_memory
+from app.vectorstore.client import upsert_vectors
 from app.vectorstore.embedding_pipeline import embed_query, embed_texts
 from app.core.logging import get_logger
 
@@ -79,18 +80,14 @@ async def _summarise_and_store(session_id: int, conversation_text: str, turn_end
             return
 
         vector = embed_query(summary)
-        col = get_or_create(col_memory(session_id))
         summary_id = hashlib.md5(f"{session_id}_{turn_end}".encode()).hexdigest()
-        col.upsert(
-            ids=[summary_id],
-            embeddings=[vector],
-            documents=[summary],
-            metadatas=[{
+        upsert_vectors(
+            col_memory(session_id), [summary_id], [vector], [summary], [{
                 "session_id": session_id,
                 "turn_end": turn_end,
                 "created_at": int(time.time()),
                 "type": "episodic",
-            }],
+            }]
         )
         logger.info(
             "Episodic summary stored",

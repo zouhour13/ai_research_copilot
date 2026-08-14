@@ -1,16 +1,14 @@
-import os
-import shutil
 import asyncio
-import io
+import mimetypes
+import os
+import tempfile
 # pyrefly: ignore [missing-import]
 from fastapi import UploadFile
 from app.vectorstore.embedding_pipeline import ingest_document
 from app.core.logging import get_logger
+from app.services.supabase_service import upload_bytes
 
 logger = get_logger(__name__)
-
-UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
 
@@ -90,9 +88,10 @@ def _extract_csv_xlsx_text(file_path: str, filename: str) -> list[dict]:
     return pages
 
 
-async def process_and_store_document(file: UploadFile, session_id: int) -> int:
+async def process_and_store_document(file: UploadFile, session_id: int) -> tuple[int, str]:
     """
-    Save the uploaded file to disk, extract text, chunk + embed into ChromaDB.
+    Store the original in Supabase Storage, then use a short-lived temporary
+    file only while extracting text and embedding it.
 
     Returns the number of chunks stored.
     Raises:
@@ -100,15 +99,20 @@ async def process_and_store_document(file: UploadFile, session_id: int) -> int:
       - ImportError: PyMuPDF not installed
       - IOError: processing or embedding failure
     """
-    safe_name = _safe_filename(session_id, file.filename or "upload")
-    file_path = os.path.join(UPLOAD_DIR, safe_name)
-
     content = await file.read()
     if len(content) > MAX_FILE_SIZE_BYTES:
         raise ValueError(f"File too large. Maximum size is {MAX_FILE_SIZE_BYTES // (1024*1024)}MB.")
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
+    filename = file.filename or "upload"
+    safe_name = _safe_filename(session_id, filename)
+    storage_path = f"uploads/session_{session_id}/{safe_name}"
+    content_type = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    upload_bytes(storage_path, content, content_type)
+
+    suffix = os.path.splitext(filename)[1]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary:
+        temporary.write(content)
+        file_path = temporary.name
 
     try:
         ext = (file.filename or "").lower()
@@ -145,7 +149,7 @@ async def process_and_store_document(file: UploadFile, session_id: int) -> int:
                 "CSV/Excel embedded",
                 extra={"session_id": session_id, "chunks": total_chunks, "file_name": file.filename},
             )
-            return total_chunks
+            return total_chunks, storage_path
 
         # ── PDF — full text extraction via PyMuPDF ───────────────────────────
         if not ext.endswith(".pdf"):
@@ -219,15 +223,14 @@ async def process_and_store_document(file: UploadFile, session_id: int) -> int:
             "Document embedded",
             extra={"session_id": session_id, "chunks": total_chunks, "file_name": file.filename},
         )
-        return total_chunks
+        return total_chunks, storage_path
 
     except (ValueError, ImportError, IOError):
         # Re-raise known errors
-        if os.path.exists(file_path):
-            os.remove(file_path)
         raise
     except Exception as e:
         logger.exception("Document processing failed", extra={"session_id": session_id})
+        raise IOError(f"Failed to process document: {str(e)}") from e
+    finally:
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise IOError(f"Failed to process document: {str(e)}") from e

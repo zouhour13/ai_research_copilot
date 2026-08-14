@@ -8,6 +8,8 @@ from app.db.database import engine
 from pydantic import BaseModel
 from datetime import datetime
 from app.schemas.common import ChatMode
+from app.vectorstore.collections import delete_session_collections
+from app.services.supabase_service import delete_file
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
@@ -108,6 +110,10 @@ def delete_session(session_id: int, db: DBSession = Depends(get_db)):
     messages = db.exec(select(Message).where(Message.session_id == session_id)).all()
     for msg in messages:
         db.delete(msg)
+
+    delete_session_collections(session_id)
+    if session.file_storage_path:
+        delete_file(session.file_storage_path)
 
     db.delete(session)
     db.commit()

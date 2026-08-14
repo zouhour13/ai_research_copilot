@@ -1,11 +1,10 @@
-import os
-import mimetypes
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session as DBSession
 from app.db.database import engine
 from app.db.models import Session
-from app.services.document_service import process_and_store_document, UPLOAD_DIR, _safe_filename
+from app.services.document_service import process_and_store_document
+from app.services.supabase_service import create_download_url
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -43,9 +42,10 @@ async def upload_document(
 
     try:
         # process_and_store_document is async — handles PDF + CSV/XLSX
-        chunks_count = await process_and_store_document(file, session_id)
+        chunks_count, storage_path = await process_and_store_document(file, session_id)
 
         chat_session.file_name = file.filename
+        chat_session.file_storage_path = storage_path
 
         # All file types are now indexed — set file_search_store_name so RAG activates
         # and update the session mode to "file" so the orchestrator routes to the RAG agent
@@ -92,31 +92,6 @@ def serve_document(session_id: int, db: DBSession = Depends(get_db)):
     if not chat_session or not chat_session.file_name:
         raise HTTPException(status_code=404, detail="No document found for this session")
 
-    safe_name = _safe_filename(session_id, chat_session.file_name)
-    file_path = os.path.join(UPLOAD_DIR, safe_name)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Document file not found on server")
-
-    # Determine MIME type from the original filename
-    # Explicitly map common types that mimetypes.guess_type can miss on some platforms
-    _mime_map = {
-        ".pdf":  "application/pdf",
-        ".csv":  "text/csv",
-        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ".xls":  "application/vnd.ms-excel",
-    }
-    ext = os.path.splitext(chat_session.file_name)[1].lower()
-    mime_type = _mime_map.get(ext) or mimetypes.guess_type(chat_session.file_name)[0] or "application/octet-stream"
-
-    # PDFs: inline so the browser renders them; everything else: attachment (download)
-    if mime_type == "application/pdf":
-        disposition = f'inline; filename="{chat_session.file_name}"'
-    else:
-        disposition = f'attachment; filename="{chat_session.file_name}"'
-
-    return FileResponse(
-        path=file_path,
-        media_type=mime_type,
-        headers={"Content-Disposition": disposition},
-    )
+    if not chat_session.file_storage_path:
+        raise HTTPException(status_code=404, detail="Document storage path not found")
+    return RedirectResponse(create_download_url(chat_session.file_storage_path), status_code=307)

@@ -71,9 +71,16 @@ npm run dev
 
 Open `http://localhost:3000` in your browser.
 
-## Deployment
+## Deployment: Render Free + Supabase
 
-The repository currently has no committed Vercel configuration or project link. For a production deployment, configure the frontend project in Vercel and set the frontend API base URL (`NEXT_PUBLIC_API_URL`) together with the backend's required `GEMINI_API_KEY` and `EXA_API_KEY` in the appropriate secret stores. Do not commit these values.
+The backend is configured for a Render **Free** web service through [`render.yaml`](render.yaml). It has no persistent disk: SQLModel session/message data lives in Supabase PostgreSQL; uploaded documents and generated PDF/DOCX reports live in Supabase Storage; document, memory, and web-cache vectors live in the Supabase `vector_chunks` pgvector table.
+
+1. Create a Supabase project, then create a private Storage bucket named `research-files`.
+2. In Supabase SQL Editor, run [`backend/supabase/migrations/001_render_free.sql`](backend/supabase/migrations/001_render_free.sql). The app creates its `session` and `message` tables at first startup.
+3. In Render, create a Web Service from this repository or Blueprint. Select the **Free** plan, use `backend` as the root directory, and do not add a disk. Set the secret variables shown in `.env.example`: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `EXA_API_KEY`, `ALLOWED_ORIGINS`, and `API_BASE_URL`. Set `SUPABASE_STORAGE_BUCKET=research-files`.
+4. Deploy the frontend separately (for example, Vercel) with `NEXT_PUBLIC_API_URL` set to the public Render backend URL, then add the frontend URL to Render's `ALLOWED_ORIGINS`.
+
+`SUPABASE_SERVICE_ROLE_KEY`, Gemini, and Exa keys are backend secrets. Never expose them to the frontend or commit them. Free Render services can spin down while idle; the first request after idle can be slower, but all application data survives restarts and redeploys in Supabase.
 
 ## Repository automation
 
