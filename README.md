@@ -89,7 +89,7 @@ Every push runs the documentation workflow. It refreshes the generated project s
 <!-- GENERATED:START -->
 ## Current repository snapshot
 
-_Generated automatically on 2026-08-14 01:03 UTC. Revision: `76065ed`._
+_Generated automatically on 2026-09-09 10:55 UTC. Revision: `a38a4b8`._
 
 | Metric | Current value |
 | --- | --- |
