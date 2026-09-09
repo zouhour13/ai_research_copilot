@@ -16,6 +16,14 @@ This vault is the living knowledge base for the project. Keep durable decisions,
 - [[40-Backlog]] — prioritised follow-up work
 - [[Project Snapshot]] — generated after each GitHub push
 
+## Production workspace
+
+- Frontend: <https://ai-research-copilot-azure.vercel.app>
+- API: <https://ai-research-copilot-api.onrender.com>
+- API health: <https://ai-research-copilot-api.onrender.com/health>
+
+The production topology is Vercel for the Next.js frontend, Render Free for the FastAPI API, and Supabase for persistent data, files, exports, and vectors. Operational deployment details are maintained in [[30-Operations]].
+
 ## Working agreement
 
 1. Document architectural decisions in the relevant note when they are made.

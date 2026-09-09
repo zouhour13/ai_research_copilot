@@ -14,6 +14,12 @@ tags:
 
 Install backend packages with `pip install -r backend/requirements.txt` and frontend packages with `npm install` from `frontend/`.
 
+## Production environment
+
+The deployed frontend is <https://ai-research-copilot-azure.vercel.app>; it calls the Render API at <https://ai-research-copilot-api.onrender.com>. For local frontend work, keep `NEXT_PUBLIC_API_URL` pointed at the intended backend. Production CORS requires the Vercel origin to be included in Render's `ALLOWED_ORIGINS`.
+
+The backend uses Supabase rather than the Render filesystem for PostgreSQL records, Storage files/exports, and pgvector retrieval. Do not add a persistent Render disk or place production secrets in `NEXT_PUBLIC_` variables.
+
 ## Before opening a pull request
 
 1. Run the frontend lint command: `cd frontend; npm run lint`.
