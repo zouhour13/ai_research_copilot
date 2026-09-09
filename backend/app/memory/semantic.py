@@ -26,6 +26,12 @@ FACTS_COLLECTION_PREFIX = "facts"
 # They target the most common ways users state preferences and personal info.
 
 FACT_PATTERNS = [
+    # "Hi, I'm Ahmed" / "I'm Ahmed".  This deliberately requires a
+    # capitalized single name so statements such as "I'm a developer" are not
+    # incorrectly stored as a name.
+    (re.compile(r"(?:^|(?i:hi|hello|hey)[,!\s]+)[Ii](?:'m| am)\s+([A-Z][A-Za-z' -]{0,80}?)(?=[.!?]|$)"),
+     lambda m: f"User's name is {m.group(1).strip()}"),
+
     # "My favorite X is Y"
     (re.compile(r"my favorite\s+(.+?)\s+is\s+(.+?)[\.\!\?]", re.I),
      lambda m: f"User's favorite {m.group(1).strip()} is {m.group(2).strip()}"),
@@ -104,6 +110,7 @@ def _extract_facts_from_text(text: str) -> list[str]:
     # Normalize: strip markdown
     clean = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
     clean = re.sub(r'`(.+?)`', r'\1', clean)
+    clean = clean.replace("’", "'")
 
     # Add period at end if missing (helps pattern matching)
     sentences = re.split(r'(?<=[.!?])\s+', clean)

@@ -92,6 +92,12 @@ The frontend is deployed from `frontend/` as a Next.js project. Its sole public 
 
 `SUPABASE_SERVICE_ROLE_KEY`, Gemini, and Exa keys are backend secrets. Never expose them to the frontend or commit them. Free Render services can spin down while idle; the first request after idle can be slower, but all application data survives restarts and redeploys in Supabase.
 
+### Live research and cross-session memory
+
+Turn on **Research** mode before sending a current-information question. The backend calls Exa with current search contents and returns its sources to the chat. If Exa cannot return sources, the app reports that failure instead of answering from model-only knowledge. `EXA_API_KEY` must be configured on Render, and the backend installs the supported Exa Python SDK from `backend/requirements.txt` on deploy.
+
+Personal facts stated in a chat, such as `Hi, I'm Ahmed.`, are embedded into the global semantic-memory collection after the streamed response completes. They can then be retrieved in later chat sessions; this relies on the configured Supabase service-role backend connection and Gemini embedding key.
+
 ## Repository automation
 
 Every push runs the documentation workflow. It refreshes the generated project snapshot in this README and in the Obsidian vault, then commits the update if anything changed. See [the automation guide](vault/30-Operations.md#github-documentation-automation) for the required repository setting.
@@ -99,7 +105,7 @@ Every push runs the documentation workflow. It refreshes the generated project s
 <!-- GENERATED:START -->
 ## Current repository snapshot
 
-_Generated automatically on 2026-09-09 13:00 UTC. Revision: `650a3ea`._
+_Generated automatically on 2026-09-09 22:53 UTC. Revision: `3ac7035`._
 
 | Metric | Current value |
 | --- | --- |

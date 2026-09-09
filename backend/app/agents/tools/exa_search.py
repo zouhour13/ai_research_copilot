@@ -1,9 +1,4 @@
-"""
-Exa web search tool — returns structured source results for the citation agent.
-
-P1-2 FIX: Use search_and_contents() instead of search() so that the 'text'
-field is populated. The basic search() API does NOT return text content.
-"""
+"""Exa web-search adapter used by the research agent."""
 import os
 from app.agents.base import Source
 from app.core.logging import get_logger
@@ -32,7 +27,10 @@ def search_web(query: str, k: int = 5) -> list[Source]:
     """
     Run Exa search and return a list of Source objects with populated excerpts.
 
-    Uses search_and_contents() to get actual page text (P1-2 fix).
+    Exa's current Python SDK returns search contents from ``search()`` when
+    requested via its ``contents`` argument.  ``search_and_contents()`` and
+    the old top-level ``text=True`` argument are no longer the supported
+    search API, and caused live-search requests to fail before reaching Exa.
     Returns empty list if Exa is unavailable or the query fails.
 
     NOTE: use_autoprompt was removed — it is not a valid option in the current
@@ -43,15 +41,20 @@ def search_web(query: str, k: int = 5) -> list[Source]:
         return []
     try:
         logger.info("Exa search: %s (k=%d)", query[:80], k)
-        results = _exa.search_and_contents(
+        results = _exa.search(
             query,
             num_results=k,
-            text=True,  # get full page text
+            # Research mode is for current information.  Ask Exa to refresh
+            # content that is more than one day old.
+            # Highlights give the LLM focused evidence without downloading an
+            # entire page for every result.
+            contents={"highlights": True, "max_age_hours": 24},
         )
         sources = []
         for r in results.results:
+            highlights = getattr(r, "highlights", None) or []
             text_content = getattr(r, "text", "") or ""
-            excerpt = text_content[:800].strip()
+            excerpt = "\n".join(highlights).strip() or text_content[:1200].strip()
             sources.append(Source(
                 title=getattr(r, "title", None) or "Untitled",
                 url=getattr(r, "url", ""),

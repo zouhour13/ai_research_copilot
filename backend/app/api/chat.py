@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session as DBSession, select
 from datetime import datetime
 import json
-import asyncio
 # pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse
 
@@ -112,6 +111,7 @@ async def chat(
 async def chat_stream(
     session_id: int,
     payload: ChatRequest,
+    background_tasks: BackgroundTasks,
     db: DBSession = Depends(get_db),
 ):
     chat_session = db.get(Session, session_id)
@@ -185,11 +185,11 @@ async def chat_stream(
                     inner_session.updated_at = datetime.utcnow()
                 inner_db.commit()
 
-            # Post-stream memory tasks: run directly inside generator so they
-            # have access to the completed full_response (not captured before streaming).
-            # Using asyncio.ensure_future so they don't block the final SSE events.
-            asyncio.ensure_future(maybe_summarise(session_id))
-            asyncio.ensure_future(extract_and_store_facts(session_id, content, full_response))
+            # Starlette runs these after the streaming response completes.
+            # Unlike unmanaged ensure_future tasks, they are not discarded when
+            # the request generator closes, so cross-session facts persist.
+            background_tasks.add_task(maybe_summarise, session_id)
+            background_tasks.add_task(extract_and_store_facts, session_id, content, full_response)
 
             yield f"data: {json.dumps({'session_title': session_title})}\n\n"
             yield "data: [DONE]\n\n"
@@ -200,7 +200,11 @@ async def chat_stream(
             yield f"data: {json.dumps({'error': err_detail, 'chunk': f'**Error:** {err_detail}'})}\n\n"
             yield "data: [DONE]\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        background=background_tasks,
+    )
 
 
 # ── GET /chat/{session_id}/history ─────────────────────────────────────────────

@@ -27,7 +27,9 @@ pandas
 openpyxl
 
 # Search
-exa-py==2.0.2
+# v2.0.2 uses the retired search_and_contents API.  The research adapter uses
+# the current search(..., contents=...) API exposed by the maintained SDK.
+exa-py==2.14.0
 
 # Export
 # P0-4 FIX: Use fpdf2 — the export_service.py imports from fpdf, not reportlab

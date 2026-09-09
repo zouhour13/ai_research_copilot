@@ -74,6 +74,15 @@ class ResearchAgent:
         if not live_sources:
             logger.warning("Research: Exa returned 0 results for query: %s", query[:80])
             result.add_step("Web search returned no results", "error")
+            # Do not ask the LLM to answer a live-research request without
+            # live evidence.  That can produce a plausible but stale answer.
+            result.answer = (
+                "⚠ **Web search returned no results.**\n\n"
+                "Research Mode requires a live Exa search, so I won't answer "
+                "this request from general model knowledge. Check the Render "
+                "`EXA_API_KEY` setting and try again."
+            )
+            return result
 
         # Cache new results
         for s in live_sources:

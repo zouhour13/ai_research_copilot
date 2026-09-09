@@ -24,6 +24,12 @@ Set `SUPABASE_STORAGE_BUCKET=research-files` and `PYTHON_VERSION=3.12.8` as well
 
 After a deployment, verify `/health`, create and reload a test chat session to confirm PostgreSQL persistence, then test file upload, retrieval, and export once the Supabase Storage variables are configured. Render Free instances can take 50 seconds or more to wake after inactivity; this is expected and does not affect persisted data.
 
+## Research and memory smoke test
+
+In a **Research**-mode session, ask a current-information question and confirm the answer includes Exa sources. If Exa fails, the application should show a live-search error rather than answer from the model's general knowledge; verify the Render `EXA_API_KEY` and redeploy after dependency changes.
+
+For cross-session memory, send `Hi, I'm Ahmed.` in one chat and wait until its streamed response finishes. Create another chat and ask `What is my name?`. The answer should retrieve the global semantic fact. This depends on the Supabase vector table and Gemini embedding configuration described above.
+
 ## GitHub documentation automation
 
 The workflow at `.github/workflows/update-documentation.yml` runs on every push. It calls `scripts/generate_project_docs.py`, which updates:
