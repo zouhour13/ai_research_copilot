@@ -12,7 +12,7 @@ Keep `GEMINI_API_KEY` and `EXA_API_KEY` in a local `.env` file or in your deploy
 
 ## Render Free deployment
 
-The production backend uses Render's Free web-service plan with no persistent disk. Supabase PostgreSQL stores chat records, Supabase Storage stores uploads and exports, and Supabase pgvector stores RAG and memory vectors. Before first deployment, create the private `research-files` bucket and run `backend/supabase/migrations/001_render_free.sql` in Supabase SQL Editor. Configure `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `EXA_API_KEY`, `ALLOWED_ORIGINS`, and `API_BASE_URL` in Render's environment settings.
+The production backend uses Render's Free web-service plan with no persistent disk. Supabase PostgreSQL stores chat records, Supabase Storage stores uploads and exports, and Supabase pgvector stores RAG and memory vectors. Before first deployment, create the private `research-files` bucket and run `backend/supabase/migrations/001_render_free.sql` followed by `backend/supabase/migrations/002_document_rag.sql` in Supabase SQL Editor. Configure `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `EXA_API_KEY`, `ALLOWED_ORIGINS`, and `API_BASE_URL` in Render's environment settings. `SUPABASE_URL` must exactly match the project URL shown in Supabase Settings → API (`https://<project-ref>.supabase.co`); using a project name causes file uploads to fail before extraction.
 
 ### Production endpoints
 
