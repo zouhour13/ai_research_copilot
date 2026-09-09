@@ -158,7 +158,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({
         messages: history,
         isLoading: false,
-        isResearchMode: session?.mode === "research",
+        isResearchMode: session?.mode === "research" || session?.mode === "hybrid",
       });
     } catch {
       toast.error("Could not load conversation");
@@ -262,9 +262,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }));
 
     try {
+      const activeSession = get().sessions.find((session) => session.id === sessionId);
+      const hasDocument = Boolean(activeSession?.file_search_store_name);
+      const messageMode = get().isResearchMode
+        ? (hasDocument ? "hybrid" : "research")
+        : (hasDocument ? "file" : "chat");
+
       await apiSendMessageStream(
         sessionId,
         content,
+        messageMode,
         (chunk) => {
           set((state) => {
             const newMessages = [...state.messages];
@@ -318,9 +325,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // P0-6 / P1-4 FIX: sync research mode to the backend session
   toggleResearchMode: async () => {
-    const newMode = get().isResearchMode ? "chat" : "research";
+    const activeSession = get().sessions.find((session) => session.id === get().activeSessionId);
+    const hasDocument = Boolean(activeSession?.file_search_store_name);
+    const wasResearchMode = get().isResearchMode;
+    const newMode = wasResearchMode ? "chat" : (hasDocument ? "hybrid" : "research");
     // Optimistically update UI
-    set({ isResearchMode: newMode === "research" });
+    set({ isResearchMode: newMode === "research" || newMode === "hybrid" });
 
     const sessionId = get().activeSessionId;
     if (sessionId) {
@@ -332,7 +342,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }));
       } catch {
         // Revert on failure
-        set({ isResearchMode: newMode !== "research" });
+        set({ isResearchMode: wasResearchMode });
         toast.error("Could not update research mode");
       }
     }

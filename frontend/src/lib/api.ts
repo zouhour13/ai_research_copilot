@@ -70,6 +70,7 @@ export async function updateSessionMode(
 export async function sendMessageStream(
   sessionId: number,
   content: string,
+  mode: "chat" | "research" | "file" | "hybrid",
   onChunk: (chunk: string) => void,
   onSources: (sources: Source[]) => void,
   onTitle: (title: string) => void,
@@ -78,7 +79,7 @@ export async function sendMessageStream(
   const res = await fetch(`${API_BASE}/chat/${sessionId}/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, mode }),
   });
 
   if (!res.ok) {

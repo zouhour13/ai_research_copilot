@@ -52,6 +52,12 @@ async def chat(
     if not content:
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
 
+    # Use the mode selected in the composer for this request and persist it so
+    # the next message and a subsequent session reload agree on the route.
+    session_mode = payload.mode or chat_session.mode
+    if payload.mode is not None and chat_session.mode != session_mode:
+        chat_session.mode = session_mode
+
     # Auto-title
     existing = db.exec(select(Message).where(Message.session_id == session_id)).all()
     if not existing and chat_session.title in ("New Chat", "New chat"):
@@ -59,7 +65,7 @@ async def chat(
 
     logger.info(
         "Chat request",
-        extra={"session_id": session_id, "mode": chat_session.mode, "content_len": len(content)},
+        extra={"session_id": session_id, "mode": session_mode, "content_len": len(content)},
     )
 
     # Build memory context — includes global cross-session facts
@@ -71,7 +77,7 @@ async def chat(
     # Run orchestrator — routing is now explicit (mode + has_document)
     orchestrator = AgentOrchestrator(
         session_id=session_id,
-        mode=chat_session.mode,
+        mode=session_mode,
         has_document=bool(chat_session.file_search_store_name),
     )
     result = await orchestrator.run(content, memory_ctx)
@@ -122,6 +128,13 @@ async def chat_stream(
     if not content:
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
 
+    # Do not rely only on an earlier PATCH /sessions/{id}/mode request.  The
+    # message itself carries the composer mode, which prevents a Research-mode
+    # UI from being routed as plain Chat when session state is stale.
+    session_mode = payload.mode or chat_session.mode
+    if payload.mode is not None and chat_session.mode != session_mode:
+        chat_session.mode = session_mode
+
     existing = db.exec(select(Message).where(Message.session_id == session_id)).all()
     if not existing and chat_session.title in ("New Chat", "New chat"):
         chat_session.title = _auto_title(content)
@@ -134,7 +147,6 @@ async def chat_stream(
 
     # Snapshot values for the async generator
     session_title = chat_session.title
-    session_mode = chat_session.mode
     has_document = bool(chat_session.file_search_store_name)
 
     logger.info(
