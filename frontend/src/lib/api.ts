@@ -90,29 +90,47 @@ export async function sendMessageStream(
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder("utf-8");
+  let eventBuffer = "";
+
+  const handleEvent = (eventBlock: string): boolean => {
+    const dataStr = eventBlock
+      .split("\n")
+      .filter((line) => line.startsWith("data: "))
+      .map((line) => line.slice(6))
+      .join("\n")
+      .trim();
+
+    if (dataStr === "[DONE]") return true;
+    if (!dataStr) return false;
+
+    try {
+      const data = JSON.parse(dataStr);
+      if (data.chunk) onChunk(data.chunk);
+      if (data.sources) onSources(data.sources);
+      if (data.session_title) onTitle(data.session_title);
+      if (data.agent_step) onAgentStep(data.agent_step as AgentStep);
+    } catch {
+      // A malformed server event should not terminate the entire stream.
+    }
+    return false;
+  };
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunkStr = decoder.decode(value, { stream: true });
+    eventBuffer += decoder.decode(value, { stream: true });
 
-    for (const line of chunkStr.split("\n")) {
-      if (!line.startsWith("data: ")) continue;
-      const dataStr = line.slice(6).trim();
-      if (dataStr === "[DONE]") return;
-      if (!dataStr) continue;
-
-      try {
-        const data = JSON.parse(dataStr);
-        if (data.chunk) onChunk(data.chunk);
-        if (data.sources) onSources(data.sources);
-        if (data.session_title) onTitle(data.session_title);
-        if (data.agent_step) onAgentStep(data.agent_step as AgentStep);
-      } catch {
-        // ignore parse errors on partial chunks
-      }
+    // SSE events are delimited by a blank line, not by a network read.  Keep
+    // incomplete data in the buffer so a large sources payload is never lost.
+    const completeEvents = eventBuffer.split("\n\n");
+    eventBuffer = completeEvents.pop() ?? "";
+    for (const eventBlock of completeEvents) {
+      if (handleEvent(eventBlock)) return;
     }
   }
+
+  eventBuffer += decoder.decode();
+  if (eventBuffer && handleEvent(eventBuffer)) return;
 }
 
 export async function getChatHistory(sessionId: number): Promise<Message[]> {

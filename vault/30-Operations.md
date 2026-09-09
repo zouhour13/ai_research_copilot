@@ -26,7 +26,7 @@ After a deployment, verify `/health`, create and reload a test chat session to c
 
 ## Research and memory smoke test
 
-In a **Research**-mode session, ask a current-information question and confirm the answer includes Exa sources. The sent message records Research mode before it is routed, preventing stale session state from falling back to Chat mode. If Exa fails, the application should show a live-search error rather than answer from the model's general knowledge; verify the Render `EXA_API_KEY` and redeploy after dependency changes.
+In a **Research**-mode session, ask a current-information question and confirm the answer includes Exa sources in the right-hand Sources panel. The sent message records Research mode before it is routed, preventing stale session state from falling back to Chat mode; the frontend also buffers streamed source events so large source lists are retained. If Exa fails, the application should show a live-search error rather than answer from the model's general knowledge; verify the Render `EXA_API_KEY` and redeploy after dependency changes.
 
 For cross-session memory, send `Hi, I'm Ahmed.` in one chat and wait until its streamed response finishes. Create another chat and ask `What is my name?`. The answer should retrieve the global semantic fact. This depends on the Supabase vector table and Gemini embedding configuration described above.
 

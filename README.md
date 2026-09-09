@@ -94,7 +94,7 @@ The frontend is deployed from `frontend/` as a Next.js project. Its sole public 
 
 ### Live research and cross-session memory
 
-Turn on **Research** mode before sending a current-information question. Each message carries the selected mode to the backend, which persists it before routing to Exa and returns sources to the chat. If Exa cannot return sources, the app reports that failure instead of answering from model-only knowledge. `EXA_API_KEY` must be configured on Render, and the backend installs the supported Exa Python SDK from `backend/requirements.txt` on deploy.
+Turn on **Research** mode before sending a current-information question. Each message carries the selected mode to the backend, which persists it before routing to Exa and returns sources to the chat. The frontend preserves complete SSE source events even when a large source list arrives in multiple network chunks, so URLs appear in the Sources panel. If Exa cannot return sources, the app reports that failure instead of answering from model-only knowledge. `EXA_API_KEY` must be configured on Render, and the backend installs the supported Exa Python SDK from `backend/requirements.txt` on deploy.
 
 Personal facts stated in a chat, such as `Hi, I'm Ahmed.`, are embedded into the global semantic-memory collection after the streamed response completes. They can then be retrieved in later chat sessions; this relies on the configured Supabase service-role backend connection and Gemini embedding key.
 
@@ -105,7 +105,7 @@ Every push runs the documentation workflow. It refreshes the generated project s
 <!-- GENERATED:START -->
 ## Current repository snapshot
 
-_Generated automatically on 2026-09-09 23:04 UTC. Revision: `ec035c2`._
+_Generated automatically on 2026-09-09 23:12 UTC. Revision: `ec035c2`._
 
 | Metric | Current value |
 | --- | --- |
