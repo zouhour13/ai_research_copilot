@@ -14,6 +14,16 @@ Keep `GEMINI_API_KEY` and `EXA_API_KEY` in a local `.env` file or in your deploy
 
 The production backend uses Render's Free web-service plan with no persistent disk. Supabase PostgreSQL stores chat records, Supabase Storage stores uploads and exports, and Supabase pgvector stores RAG and memory vectors. Before first deployment, create the private `research-files` bucket and run `backend/supabase/migrations/001_render_free.sql` in Supabase SQL Editor. Configure `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `EXA_API_KEY`, `ALLOWED_ORIGINS`, and `API_BASE_URL` in Render's environment settings.
 
+### Production endpoints
+
+- Vercel frontend: <https://ai-research-copilot-azure.vercel.app>
+- Render API: <https://ai-research-copilot-api.onrender.com>
+- Health endpoint: <https://ai-research-copilot-api.onrender.com/health>
+
+Set `SUPABASE_STORAGE_BUCKET=research-files` and `PYTHON_VERSION=3.12.8` as well. The Vercel project uses `frontend/` as its root directory and must have only `NEXT_PUBLIC_API_URL=https://ai-research-copilot-api.onrender.com` as the public application variable. `ALLOWED_ORIGINS` on Render must include `https://ai-research-copilot-azure.vercel.app` exactly, without a trailing slash.
+
+After a deployment, verify `/health`, create and reload a test chat session to confirm PostgreSQL persistence, then test file upload, retrieval, and export once the Supabase Storage variables are configured. Render Free instances can take 50 seconds or more to wake after inactivity; this is expected and does not affect persisted data.
+
 ## GitHub documentation automation
 
 The workflow at `.github/workflows/update-documentation.yml` runs on every push. It calls `scripts/generate_project_docs.py`, which updates:
