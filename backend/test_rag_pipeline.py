@@ -7,7 +7,8 @@ import json
 import os
 import time
 
-API_BASE = "http://127.0.0.1:8000"
+# Defaults to local development; set API_BASE_URL to exercise Render/Supabase.
+API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 
 def create_session():

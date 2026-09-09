@@ -8,11 +8,23 @@ logger = get_logger(__name__)
 DEFAULT_MIN_SCORE = 0.35
 
 
-def _query_collection(collection_name: str, query: str, k: int, min_score: float = DEFAULT_MIN_SCORE) -> list[dict]:
+class RetrievalError(RuntimeError):
+    """Raised when semantic search cannot be completed."""
+
+
+def _query_collection(
+    collection_name: str,
+    query: str,
+    k: int,
+    min_score: float = DEFAULT_MIN_SCORE,
+    raise_errors: bool = False,
+) -> list[dict]:
     try:
         rows = query_vectors(collection_name, embed_query(query), k, min_score)
     except Exception as exc:
-        logger.warning("Vector retrieval failed for %s: %s", collection_name, exc)
+        logger.exception("Vector retrieval failed for %s", collection_name)
+        if raise_errors:
+            raise RetrievalError("Document retrieval is temporarily unavailable.") from exc
         return []
     return [
         {"content": row["content"], "metadata": row["metadata"], "score": round(row["similarity"], 4)}
@@ -21,7 +33,7 @@ def _query_collection(collection_name: str, query: str, k: int, min_score: float
 
 
 def retrieve_docs(session_id: int, query: str, k: int = 6) -> list[dict]:
-    return _query_collection(col_docs(session_id), query, k)
+    return _query_collection(col_docs(session_id), query, k, raise_errors=True)
 
 
 def retrieve_memory(session_id: int, query: str, k: int = 4) -> list[dict]:

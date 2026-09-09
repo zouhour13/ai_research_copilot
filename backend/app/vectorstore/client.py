@@ -6,9 +6,26 @@ def _vector_literal(vector: list[float]) -> str:
     return "[" + ",".join(str(float(value)) for value in vector) + "]"
 
 
-def upsert_vectors(collection: str, ids: list[str], embeddings: list[list[float]], documents: list[str], metadatas: list[dict]) -> None:
+def upsert_vectors(
+    collection: str,
+    ids: list[str],
+    embeddings: list[list[float]],
+    documents: list[str],
+    metadatas: list[dict],
+    *,
+    document_id: str | None = None,
+    session_id: int | None = None,
+) -> None:
     rows = [
-        {"id": item_id, "collection": collection, "content": document, "metadata": metadata, "embedding": _vector_literal(embedding)}
+        {
+            "id": item_id,
+            "collection": collection,
+            "content": document,
+            "metadata": metadata,
+            "embedding": _vector_literal(embedding),
+            "document_id": document_id,
+            "session_id": session_id if session_id is not None else metadata.get("session_id"),
+        }
         for item_id, embedding, document, metadata in zip(ids, embeddings, documents, metadatas)
     ]
     if rows:
@@ -28,3 +45,8 @@ def query_vectors(collection: str, embedding: list[float], count: int, threshold
 def delete_collections(collections: list[str]) -> None:
     if collections:
         get_supabase().table("vector_chunks").delete().in_("collection", collections).execute()
+
+
+def delete_document_vectors(session_id: int) -> None:
+    """Remove only prior uploaded-document chunks, never memory vectors."""
+    get_supabase().table("vector_chunks").delete().eq("collection", f"docs_{session_id}").execute()

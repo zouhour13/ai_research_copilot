@@ -6,6 +6,7 @@ from langchain_core.messages import BaseMessage
 
 from app.llm.factory import get_llm
 from app.vectorstore.retrieval import retrieve_docs, format_docs_for_prompt
+from app.vectorstore.retrieval import RetrievalError
 from app.agents.base import AgentResult, Source, AgentStep
 from app.agents.citation_agent import CitationAgent
 
@@ -42,7 +43,16 @@ class RAGAgent:
 
         # Step 1: retrieve
         result.add_step("Searching uploaded document...", "retrieve")
-        docs = retrieve_docs(self.session_id, query, k=6)
+        try:
+            docs = retrieve_docs(self.session_id, query, k=6)
+        except RetrievalError as exc:
+            result.add_step(str(exc), "error")
+            result.answer = "**Document retrieval failed.** Please retry in a moment; no answer was generated without document context."
+            return result
+        if not docs:
+            result.add_step("No relevant chunks found", "retrieve")
+            result.answer = "I couldn't find relevant passages in the uploaded document for that question."
+            return result
         result.add_step(f"Found {len(docs)} relevant chunks", "retrieve")
 
         context = format_docs_for_prompt(docs)
@@ -89,7 +99,16 @@ class RAGAgent:
         episodic_summary: str = "",
     ):
         """Async generator yielding (event_type, data) tuples for SSE."""
-        docs = retrieve_docs(self.session_id, query, k=6)
+        try:
+            docs = retrieve_docs(self.session_id, query, k=6)
+        except RetrievalError:
+            yield ("agent_step", {"message": "Document retrieval failed", "step_type": "error"})
+            yield ("chunk", "**Document retrieval failed.** Please retry; no answer was generated without document context.")
+            return
+        if not docs:
+            yield ("agent_step", {"message": "No relevant chunks found", "step_type": "retrieve"})
+            yield ("chunk", "I couldn't find relevant passages in the uploaded document for that question.")
+            return
         yield ("agent_step", {"message": f"Retrieved {len(docs)} document chunks", "step_type": "retrieve"})
 
         raw_sources = [

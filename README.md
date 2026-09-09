@@ -84,7 +84,7 @@ The backend is configured for a Render **Free** web service through [`render.yam
 The frontend is deployed from `frontend/` as a Next.js project. Its sole public runtime variable is `NEXT_PUBLIC_API_URL`, set to the Render backend URL. The backend authorizes that production origin through `ALLOWED_ORIGINS`.
 
 1. Create a Supabase project, then create a private Storage bucket named `research-files`.
-2. In Supabase SQL Editor, run [`backend/supabase/migrations/001_render_free.sql`](backend/supabase/migrations/001_render_free.sql). The app creates its `session` and `message` tables at first startup.
+2. In Supabase SQL Editor, run [`backend/supabase/migrations/001_render_free.sql`](backend/supabase/migrations/001_render_free.sql) and then [`backend/supabase/migrations/002_document_rag.sql`](backend/supabase/migrations/002_document_rag.sql). The latter adds durable upload status/metadata and session/document identifiers to vector chunks. Ensure `vector_chunks` and `uploaded_documents` are enabled for the Data API if your project requires explicit table exposure. The app creates its `session` and `message` tables at first startup.
 3. In Render, create a Web Service from this repository or Blueprint. Select the **Free** plan, use `backend` as the root directory, set `PYTHON_VERSION=3.12.8`, and do not add a disk. Set the secret variables shown in `.env.example`: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `EXA_API_KEY`, `ALLOWED_ORIGINS`, and `API_BASE_URL`. Set `SUPABASE_STORAGE_BUCKET=research-files`.
 4. Deploy the frontend separately (for example, Vercel) with `NEXT_PUBLIC_API_URL` set to the public Render backend URL, then add the frontend URL to Render's `ALLOWED_ORIGINS`.
 

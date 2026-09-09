@@ -46,6 +46,7 @@ def ingest_document(
     session_id: int,
     text: str,
     metadata: dict,
+    document_id: str,
 ) -> int:
     """
     Split text into chunks, embed, and upsert into the session's docs collection.
@@ -60,12 +61,16 @@ def ingest_document(
     filename = metadata.get("filename", "doc")
     page = metadata.get("page", 1)
     ids = [
-        hashlib.md5(f"{session_id}_{filename}_p{page}_{i}_{hashlib.md5(chunk.encode()).hexdigest()}".encode()).hexdigest()
+        hashlib.md5(f"{document_id}_{session_id}_{filename}_p{page}_{i}_{hashlib.md5(chunk.encode()).hexdigest()}".encode()).hexdigest()
         for i, chunk in enumerate(chunks)
     ]
     metas = [dict(metadata, chunk_idx=i) for i in range(len(chunks))]
 
-    upsert_vectors(col_docs(session_id), ids, vectors, chunks, metas)
+    upsert_vectors(
+        col_docs(session_id), ids, vectors, chunks, metas,
+        document_id=document_id,
+        session_id=session_id,
+    )
     return len(chunks)
 
 

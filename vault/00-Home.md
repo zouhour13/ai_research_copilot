@@ -30,3 +30,6 @@ The production topology is Vercel for the Next.js frontend, Render Free for the 
 2. Keep user-facing setup instructions in the root `README.md`.
 3. Do not put API keys, uploaded documents, databases, or generated reports in the vault or repository.
 4. Let the automation own `Project Snapshot.md` and the generated README section.
+
+
+

@@ -1,236 +1,140 @@
+"""Extraction, chunking, embedding, and durable storage for uploaded documents."""
 import asyncio
 import mimetypes
 import os
 import tempfile
-# pyrefly: ignore [missing-import]
+import uuid
+
 from fastapi import UploadFile
-from app.vectorstore.embedding_pipeline import ingest_document
 from app.core.logging import get_logger
-from app.services.supabase_service import upload_bytes
+from app.services.supabase_service import create_document_metadata, delete_file, update_document_metadata, upload_bytes
+from app.vectorstore.embedding_pipeline import ingest_document
 
 logger = get_logger(__name__)
-
-MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
-
-
-def _check_pymupdf() -> None:
-    """
-    Verify that PyMuPDF (fitz) is importable.
-    Raises ImportError with a helpful message if missing.
-    """
-    try:
-        import fitz  # noqa: F401
-    except ImportError:
-        raise ImportError(
-            "PyMuPDF is required for PDF processing but is not installed. "
-            "Run: pip install pymupdf"
-        )
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 
 def _safe_filename(session_id: int, original_name: str) -> str:
-    """
-    Sanitize the uploaded filename to prevent path traversal.
-    Uses only the basename — strips any directory components.
-    """
-    safe_name = os.path.basename(original_name).strip()
-    safe_name = "".join(c if c.isalnum() or c in ".-_ " else "_" for c in safe_name)
-    safe_name = safe_name[:200]
-    return f"session_{session_id}_{safe_name}"
+    name = os.path.basename(original_name).strip()
+    name = "".join(char if char.isalnum() or char in ".-_ " else "_" for char in name)[:200]
+    return f"session_{session_id}_{name or 'upload'}"
 
 
-def _extract_csv_xlsx_text(file_path: str, filename: str) -> list[dict]:
-    """
-    Extract text from CSV or Excel files using pandas.
-    Returns a list of page-like dicts with 'text' and 'metadata'.
-    """
-    try:
-        import pandas as pd
-    except ImportError:
-        raise ImportError(
-            "pandas is required for CSV/Excel processing but is not installed. "
-            "Run: pip install pandas openpyxl"
-        )
-
-    ext = filename.lower()
-    if ext.endswith(".csv"):
-        df = pd.read_csv(file_path, dtype=str, na_filter=False)
-    else:
-        df = pd.read_excel(file_path, dtype=str).fillna("")
-
-    if df.empty:
+def _csv_excel_pages(path: str, filename: str) -> list[dict]:
+    import pandas as pd
+    dataframe = pd.read_csv(path, dtype=str, na_filter=False) if filename.lower().endswith(".csv") else pd.read_excel(path, dtype=str).fillna("")
+    if dataframe.empty:
         raise IOError(f"File '{filename}' appears to be empty.")
-
-    pages = []
-
-    # Page 1: Column summary
-    col_summary_lines = [f"Columns ({len(df.columns)}): {', '.join(df.columns.tolist())}"]
-    col_summary_lines.append(f"Total rows: {len(df)}")
-    pages.append({
-        "text": "\n".join(col_summary_lines),
-        "metadata": {"page": 1, "section": "column_summary"},
-    })
-
-    # Subsequent pages: batch of rows (chunk by 50 rows)
-    batch_size = 50
-    for batch_idx, start in enumerate(range(0, len(df), batch_size), start=2):
-        chunk_df = df.iloc[start:start + batch_size]
-        # Convert each row to "col: value | col: value" format for readability
-        rows_text = []
-        for _, row in chunk_df.iterrows():
-            row_parts = [f"{col}: {val}" for col, val in row.items() if str(val).strip()]
-            rows_text.append(" | ".join(row_parts))
-        batch_text = f"Rows {start + 1}–{start + len(chunk_df)}:\n" + "\n".join(rows_text)
-        pages.append({
-            "text": batch_text,
-            "metadata": {"page": batch_idx, "section": f"rows_{start + 1}_{start + len(chunk_df)}"},
-        })
-
+    pages = [{"text": f"Columns ({len(dataframe.columns)}): {', '.join(dataframe.columns)}\nTotal rows: {len(dataframe)}", "page": 1}]
+    for number, start in enumerate(range(0, len(dataframe), 50), start=2):
+        rows = []
+        for _, row in dataframe.iloc[start:start + 50].iterrows():
+            rows.append(" | ".join(f"{column}: {value}" for column, value in row.items() if str(value).strip()))
+        pages.append({"text": f"Rows {start + 1}-{start + len(rows)}:\n" + "\n".join(rows), "page": number})
     return pages
 
 
-async def process_and_store_document(file: UploadFile, session_id: int) -> tuple[int, str]:
-    """
-    Store the original in Supabase Storage, then use a short-lived temporary
-    file only while extracting text and embedding it.
-
-    Returns the number of chunks stored.
-    Raises:
-      - ValueError: unsupported file type or file too large
-      - ImportError: PyMuPDF not installed
-      - IOError: processing or embedding failure
-    """
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        raise ValueError(f"File too large. Maximum size is {MAX_FILE_SIZE_BYTES // (1024*1024)}MB.")
-
-    filename = file.filename or "upload"
-    safe_name = _safe_filename(session_id, filename)
-    storage_path = f"uploads/session_{session_id}/{safe_name}"
-    content_type = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    upload_bytes(storage_path, content, content_type)
-
-    suffix = os.path.splitext(filename)[1]
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary:
-        temporary.write(content)
-        file_path = temporary.name
-
+def _docx_pages(path: str, filename: str) -> list[dict]:
+    from docx import Document
     try:
-        ext = (file.filename or "").lower()
+        document = Document(path)
+    except Exception as exc:
+        raise IOError(f"Failed to read DOCX '{filename}': {exc}") from exc
+    lines = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+    lines.extend(" | ".join(cell.text.strip() for cell in row.cells) for table in document.tables for row in table.rows)
+    text = "\n".join(line for line in lines if line.strip()).strip()
+    if not text:
+        raise IOError(f"No text could be extracted from '{filename}'.")
+    return [{"text": text, "page": 1}]
 
-        # ── CSV / Excel — parse + embed ──────────────────────────────────────
-        if ext.endswith((".csv", ".xls", ".xlsx")):
-            logger.info(
-                "CSV/Excel upload — extracting and embedding",
-                extra={"session_id": session_id, "file_name": file.filename},
-            )
 
-            def _embed_csv_xlsx() -> int:
-                pages = _extract_csv_xlsx_text(file_path, file.filename or "upload")
-                total_chunks = 0
-                for page in pages:
-                    metadata = {
-                        "session_id": session_id,
-                        "filename": file.filename,
-                        "page": page["metadata"]["page"],
-                        "total_pages": len(pages),
-                        "source": f"{file.filename}:section={page['metadata'].get('section', page['metadata']['page'])}",
-                    }
-                    chunks_stored = ingest_document(
-                        session_id=session_id,
-                        text=page["text"],
-                        metadata=metadata,
-                    )
-                    total_chunks += chunks_stored
-                return total_chunks
-
-            total_chunks = await asyncio.to_thread(_embed_csv_xlsx)
-
-            logger.info(
-                "CSV/Excel embedded",
-                extra={"session_id": session_id, "chunks": total_chunks, "file_name": file.filename},
-            )
-            return total_chunks, storage_path
-
-        # ── PDF — full text extraction via PyMuPDF ───────────────────────────
-        if not ext.endswith(".pdf"):
-            raise ValueError(
-                f"Unsupported file type for embedding: '{ext}'. "
-                "Supported types: PDF, CSV, XLS, XLSX."
-            )
-
-        # Verify PyMuPDF is available before trying
-        _check_pymupdf()
-
-        # Load PDF pages via PyMuPDF through LangChain
+def _txt_pages(content: bytes, filename: str) -> list[dict]:
+    for encoding in ("utf-8-sig", "utf-16", "latin-1"):
         try:
-            from langchain_community.document_loaders import PyMuPDFLoader
-            loader = PyMuPDFLoader(file_path)
-            pages = loader.load()
-        except Exception as load_err:
-            raise IOError(
-                f"Failed to extract text from PDF '{file.filename}': {load_err}. "
-                "The file may be corrupted, password-protected, or contain only scanned images."
-            ) from load_err
+            text = content.decode(encoding).strip()
+            if text:
+                return [{"text": text, "page": 1}]
+        except UnicodeDecodeError:
+            pass
+    raise IOError(f"No readable text could be extracted from '{filename}'.")
 
-        if not pages:
-            raise IOError(
-                f"No text could be extracted from '{file.filename}'. "
-                "The PDF may be empty or contain only scanned images without OCR."
-            )
 
-        logger.info(
-            "PDF loaded",
-            extra={"session_id": session_id, "pages": len(pages), "file_name": file.filename},
-        )
+def _pdf_pages(path: str, filename: str) -> list[dict]:
+    try:
+        from langchain_community.document_loaders import PyMuPDFLoader
+        loaded = PyMuPDFLoader(path).load()
+    except ImportError as exc:
+        raise ImportError("PyMuPDF is required for PDF processing. Run: pip install pymupdf") from exc
+    except Exception as exc:
+        raise IOError(f"Failed to extract text from PDF '{filename}': {exc}") from exc
+    pages = [{"text": page.page_content, "page": page.metadata.get("page", 0) + 1} for page in loaded if page.page_content.strip()]
+    if not pages:
+        raise IOError(f"No text could be extracted from '{filename}'. It may be scanned, encrypted, or empty.")
+    return pages
 
-        # Run embedding in a thread pool to avoid blocking the event loop
-        def _embed_all() -> int:
-            total_chunks = 0
-            for page in pages:
-                page_num = page.metadata.get("page", 0)
-                # Page numbers from PyMuPDF are 0-indexed — convert to 1-indexed
-                page_1idx = page_num + 1 if isinstance(page_num, int) else page_num
 
-                metadata = {
-                    "session_id": session_id,
-                    "filename": file.filename,
-                    "page": page_1idx,
-                    "total_pages": len(pages),
-                    "source": f"{file.filename}:p{page_1idx}",
-                }
+def _index_pages(session_id: int, filename: str, pages: list[dict], document_id: str) -> tuple[int, int]:
+    chunks = 0
+    characters = 0
+    for source in pages:
+        text = source["text"].strip()
+        if not text:
+            continue
+        page = source["page"]
+        metadata = {"document_id": document_id, "session_id": session_id, "filename": filename, "page": page, "total_pages": len(pages), "source": f"{filename}:p{page}"}
+        chunks += ingest_document(session_id, text, metadata, document_id)
+        characters += len(text)
+    if chunks == 0:
+        raise IOError(f"No indexable text could be extracted from '{filename}'.")
+    return chunks, characters
 
-                page_text = page.page_content.strip()
-                if not page_text:
-                    continue  # Skip empty pages
 
-                chunks_stored = ingest_document(
-                    session_id=session_id,
-                    text=page_text,
-                    metadata=metadata,
-                )
-                total_chunks += chunks_stored
-            return total_chunks
+async def process_and_store_document(file: UploadFile, session_id: int) -> tuple[int, str]:
+    """Store a file, extract text, embed chunks, and write status metadata to Supabase."""
+    content = await file.read()
+    if not content:
+        raise ValueError("The uploaded file is empty.")
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise ValueError("File too large. Maximum size is 50MB.")
+    filename = file.filename or "upload"
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in {".pdf", ".docx", ".txt", ".csv", ".xls", ".xlsx"}:
+        raise ValueError("Unsupported file type. Supported: PDF, DOCX, TXT, CSV, XLS, XLSX.")
 
-        total_chunks = await asyncio.to_thread(_embed_all)
+    storage_path = f"uploads/session_{session_id}/{_safe_filename(session_id, filename)}"
+    content_type = file.content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    document_id = str(uuid.uuid4())
+    upload_bytes(storage_path, content, content_type)
+    try:
+        create_document_metadata(document_id, session_id, filename, content_type, storage_path, len(content))
+    except Exception as exc:
+        delete_file(storage_path)
+        raise IOError("Failed to create document metadata in Supabase.") from exc
 
-        if total_chunks == 0:
-            logger.warning(
-                "Document embedded 0 chunks — PDF may have minimal extractable text",
-                extra={"session_id": session_id, "file_name": file.filename},
-            )
-
-        logger.info(
-            "Document embedded",
-            extra={"session_id": session_id, "chunks": total_chunks, "file_name": file.filename},
-        )
-        return total_chunks, storage_path
-
-    except (ValueError, ImportError, IOError):
-        # Re-raise known errors
+    temporary_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temporary:
+            temporary.write(content)
+            temporary_path = temporary.name
+        if ext in {".csv", ".xls", ".xlsx"}:
+            pages = await asyncio.to_thread(_csv_excel_pages, temporary_path, filename)
+        elif ext == ".docx":
+            pages = await asyncio.to_thread(_docx_pages, temporary_path, filename)
+        elif ext == ".txt":
+            pages = _txt_pages(content, filename)
+        else:
+            pages = await asyncio.to_thread(_pdf_pages, temporary_path, filename)
+        chunks, characters = await asyncio.to_thread(_index_pages, session_id, filename, pages, document_id)
+        update_document_metadata(document_id, status="ready", chunk_count=chunks, extracted_characters=characters, error=None)
+        logger.info("Document indexed", extra={"session_id": session_id, "document_id": document_id, "chunks": chunks})
+        return chunks, storage_path
+    except (ValueError, ImportError, IOError) as exc:
+        update_document_metadata(document_id, status="failed", error=str(exc)[:1000])
         raise
-    except Exception as e:
+    except Exception as exc:
         logger.exception("Document processing failed", extra={"session_id": session_id})
-        raise IOError(f"Failed to process document: {str(e)}") from e
+        update_document_metadata(document_id, status="failed", error=str(exc)[:1000])
+        raise IOError(f"Failed to process document: {exc}") from exc
     finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if temporary_path and os.path.exists(temporary_path):
+            os.remove(temporary_path)

@@ -34,7 +34,7 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
-    allowed_extensions = (".pdf", ".csv", ".xls", ".xlsx")
+    allowed_extensions = (".pdf", ".docx", ".txt", ".csv", ".xls", ".xlsx")
     if not any(file.filename.lower().endswith(ext) for ext in allowed_extensions):
         raise HTTPException(
             status_code=400,

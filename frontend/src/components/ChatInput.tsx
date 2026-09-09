@@ -297,7 +297,7 @@ export default function ChatInput() {
                 type="file"
                 id="file-upload"
                 className="hidden"
-                accept=".pdf,.csv,.xlsx,.xls"
+                accept=".pdf,.docx,.txt,.csv,.xlsx,.xls"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) uploadFile(file);
@@ -329,7 +329,7 @@ export default function ChatInput() {
                     ? "Processing document…"
                     : hasDocument
                     ? `Document: ${uploadedFile} (click to replace)`
-                    : "Upload PDF or CSV"
+                    : "Upload PDF, DOCX, TXT, or spreadsheet"
                 }
               >
                 {isUploading ? (

@@ -1,12 +1,17 @@
-"""Supabase Storage helpers used for durable user files and exports."""
+"""Supabase Storage and document-metadata helpers."""
 import os
 from functools import lru_cache
+from typing import Any
 
-from supabase import Client, create_client
+try:
+    from supabase import Client, create_client
+except ImportError:  # pragma: no cover - compatibility with current supabase package
+    from supabase import create_client
+    from supabase.client import Client
 
 
 @lru_cache(maxsize=1)
-def get_supabase() -> Client:
+def get_supabase() -> Any:
     url = os.getenv("SUPABASE_URL")
     service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not service_role_key:
@@ -29,3 +34,29 @@ def create_download_url(path: str, expires_in: int = 3600) -> str:
 
 def delete_file(path: str) -> None:
     get_supabase().storage.from_(storage_bucket()).remove([path])
+
+
+def create_document_metadata(
+    document_id: str,
+    session_id: int,
+    filename: str,
+    content_type: str,
+    storage_path: str,
+    size_bytes: int,
+) -> None:
+    """Create the durable record before extraction starts."""
+    get_supabase().table("uploaded_documents").insert({
+        "id": document_id,
+        "session_id": session_id,
+        "filename": filename,
+        "content_type": content_type,
+        "storage_path": storage_path,
+        "size_bytes": size_bytes,
+        "status": "processing",
+    }).execute()
+
+
+def update_document_metadata(document_id: str, **values: Any) -> None:
+    """Mark an upload ready or failed without exposing metadata to the client."""
+    if values:
+        get_supabase().table("uploaded_documents").update(values).eq("id", document_id).execute()

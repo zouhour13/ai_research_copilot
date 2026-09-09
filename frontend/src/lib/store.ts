@@ -359,11 +359,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       const result = await uploadDocument(sessionId, file);
       const isPdf = file.name.toLowerCase().endsWith(".pdf");
+      const isDocxTxt = file.name.toLowerCase().endsWith(".docx") || file.name.toLowerCase().endsWith(".txt");
       const isCsvXlsx =
         file.name.toLowerCase().endsWith(".csv") ||
         file.name.toLowerCase().endsWith(".xls") ||
         file.name.toLowerCase().endsWith(".xlsx");
-      const isIndexed = isPdf || isCsvXlsx;
+      const isIndexed = isPdf || isDocxTxt || isCsvXlsx;
 
       toast.success(
         isIndexed
@@ -403,7 +404,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
           ...state.messages,
           {
             role: "assistant" as const,
-            content: isPdf
+            content: isPdf || isDocxTxt
               ? `**Document ready:** \`${file.name}\` has been indexed (${result.chunks} chunks). You can now ask me anything about it — I'll retrieve relevant passages and cite page numbers.`
               : isCsvXlsx
               ? `**Spreadsheet ready:** \`${file.name}\` has been indexed (${result.chunks} chunks). You can now ask me to summarize it, find specific data, or answer questions about its contents.`
