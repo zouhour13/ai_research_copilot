@@ -1,5 +1,7 @@
 # AI Research Copilot
 
+> A focused workspace for evidence-led AI research: chat with your sources, search the web, retain useful context, and export the result.
+
 A full-stack AI research workspace that combines conversational assistance, web-backed research, document retrieval, long-term memory, and report export in one focused interface.
 
 ## Highlights
@@ -10,6 +12,30 @@ A full-stack AI research workspace that combines conversational assistance, web-
 - Persistent chat sessions and memory
 - PDF and DOCX report exports
 - Next.js frontend and FastAPI backend
+
+## How it works
+
+```text
+Question or document
+        │
+        ├── Research mode ──> Exa web search ──> cited sources
+        │
+        └── Document mode ──> extraction ──> chunks + embeddings ──> semantic retrieval
+                                                               │
+Memory and session history ───────────────────────────────────┴──> LLM answer
+```
+
+The application retrieves relevant document chunks for a question; it does not send an entire uploaded file to the model.
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| [`frontend/`](frontend/) | Next.js workspace UI, state, streaming client, and presentation components. |
+| [`backend/app/`](backend/app/) | FastAPI routes, model orchestration, Exa integration, RAG, memory, and export services. |
+| [`backend/supabase/migrations/`](backend/supabase/migrations/) | Supabase PostgreSQL, Storage, and pgvector setup migrations. |
+| [`vault/`](vault/) | Maintained Obsidian knowledge base for architecture, development, operations, and roadmap. |
+| [`scripts/`](scripts/) | Repository-maintenance scripts, including documentation snapshot generation. |
 
 ## Interface
 
@@ -122,4 +148,4 @@ This snapshot is regenerated locally with `python scripts/generate_project_docs.
 
 ## License
 
-Add a license before distributing this project publicly.
+Released under the [MIT License](LICENSE). Copyright © 2026 zouhour13.

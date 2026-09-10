@@ -8,15 +8,15 @@ tags:
 ## System overview
 
 ```text
-Next.js web application
+Next.js web application (Vercel)
         |
         v
-FastAPI API  ---> SQLite session data
-        |        Chroma vector store
-        |        Gemini model services
-        |        Exa research search
-        v
-PDF / DOCX exports
+FastAPI API (Render)
+        |----> Gemini model and embedding services
+        |----> Exa web research
+        |----> Supabase PostgreSQL: sessions, messages, document metadata
+        |----> Supabase Storage: uploads and exports
+        \----> Supabase pgvector: document chunks, memory, retrieval
 ```
 
 ## Components
@@ -28,10 +28,12 @@ PDF / DOCX exports
 | `backend/app/agents/` | Orchestration, RAG, and citation-oriented agent behaviours. |
 | `backend/app/vectorstore/` | Document chunking, embeddings, collection management, and retrieval. |
 | `backend/app/services/` | Integrations for documents, exports, search, and model providers. |
+| `backend/supabase/migrations/` | Schema, RLS, Storage, and pgvector migrations for production. |
+| `vault/` | Durable architecture, development, operational, and roadmap documentation. |
 
 ## Data and privacy
 
-Local databases, vector-store files, uploaded documents, generated reports, and environment files are excluded from Git. Treat external model and search providers as data-processing dependencies when deploying.
+Local databases, vector-store files, uploaded documents, generated reports, and environment files are excluded from Git. Treat external model and search providers as data-processing dependencies when deploying. The backend uses its Supabase service-role credential only on the server; browser code must never receive it.
 
 ## Frontend design system
 

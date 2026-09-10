@@ -27,6 +27,10 @@ The backend uses Supabase rather than the Render filesystem for PostgreSQL recor
 3. Refresh documentation locally with `python scripts/generate_project_docs.py`.
 4. Check that no `.env`, database, upload, export, or vector-store files are staged.
 
+## UI quality bar
+
+The product is a calm, dark research workspace. Preserve the sidebar / chat / optional-inspector layout, keep keyboard focus visible, and verify desktop and narrow viewport behavior after presentation changes. Prefer the shared tokens in `frontend/src/app/globals.css` over one-off color values.
+
 ## Documentation boundaries
 
 - Edit the narrative vault notes and the non-generated README sections normally.

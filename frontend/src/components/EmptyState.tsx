@@ -9,6 +9,7 @@ import {
   Brain,
   Download,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 
@@ -57,6 +58,8 @@ const CAPABILITIES = [
   { label: "Export Reports", icon: Download },
   { label: "AI Memory", icon: Brain },
 ];
+
+const WORKFLOW = ["Ask", "Ground", "Act"];
 
 export default function EmptyState() {
   const { sendMessage, createNewSession, activeSessionId } = useAppStore();
@@ -138,6 +141,27 @@ export default function EmptyState() {
           >
             <cap.icon size={11} style={{ color: "var(--accent)" }} />
             {cap.label}
+          </div>
+        ))}
+      </motion.div>
+
+      {/* A compact orientation cue keeps the first-run workspace clear. */}
+      <motion.div
+        initial={{ y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.23, duration: 0.3 }}
+        className="research-workflow mb-5"
+        aria-label="Research workflow: Ask, Ground, Act"
+      >
+        {WORKFLOW.map((step, index) => (
+          <div key={step} className="flex items-center gap-2">
+            <span className="research-workflow-step">
+              <span>{index + 1}</span>
+              {step}
+            </span>
+            {index < WORKFLOW.length - 1 && (
+              <ArrowRight className="research-workflow-arrow" size={13} aria-hidden="true" />
+            )}
           </div>
         ))}
       </motion.div>
