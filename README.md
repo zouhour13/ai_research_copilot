@@ -132,14 +132,14 @@ Every push runs the documentation workflow. It refreshes the generated project s
 <!-- GENERATED:START -->
 ## Current repository snapshot
 
-_Generated automatically on 2026-09-10 13:01 UTC. Revision: `b89913e`._
+_Generated automatically on 2026-09-10 13:23 UTC. Revision: `a93e676`._
 
 | Metric | Current value |
 | --- | --- |
 | Project | Ai Research Copilot |
-| Version-controlled files | 118 |
+| Version-controlled files | 119 |
 | Top-level areas | `backend/` (58), `frontend/` (41), `notebooks/` (6), `vault/` (6), `.github/` (1), `scripts/` (1) |
-| Common file types | `.py` (55), `.tsx` (17), `.md` (8), `.ts` (7), `.json` (6), `.svg` (5), `.ipynb` (4), `(no extension)` (3) |
+| Common file types | `.py` (55), `.tsx` (17), `.md` (8), `.ts` (7), `.json` (6), `.svg` (5), `(no extension)` (4), `.ipynb` (4) |
 
 ### Documentation automation
 
