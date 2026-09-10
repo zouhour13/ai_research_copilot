@@ -16,6 +16,7 @@ A full-stack AI research workspace that combines conversational assistance, web-
 The frontend uses a responsive dark research-workspace interface with an indigo-violet accent system. It retains the sidebar and chat-panel information architecture while providing:
 
 - grouped, searchable conversation history and plan status in the sidebar;
+- reliable rename, clear-history, and delete controls that keep the sidebar synchronized with the persisted conversation;
 - an interactive Gemini model selector, source control, panel control, and New Chat action in the top bar;
 - document upload, research-mode switching, and send controls in a floating chat composer;
 - six research shortcuts, source citations, memory, and agent activity surfaces.

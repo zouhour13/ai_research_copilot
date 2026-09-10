@@ -10,8 +10,10 @@ from datetime import datetime
 from app.schemas.common import ChatMode
 from app.vectorstore.collections import delete_session_collections
 from app.services.supabase_service import delete_file
+from app.core.logging import get_logger
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
+logger = get_logger(__name__)
 
 
 def get_db():
@@ -71,7 +73,10 @@ def rename_session(session_id: int, payload: SessionRename, db: DBSession = Depe
     session = db.get(Session, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    session.title = payload.title
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Conversation title cannot be empty")
+    session.title = title[:200]
     session.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(session)
@@ -111,9 +116,18 @@ def delete_session(session_id: int, db: DBSession = Depends(get_db)):
     for msg in messages:
         db.delete(msg)
 
-    delete_session_collections(session_id)
+    # A conversation must remain deletable when Supabase storage/vector cleanup
+    # is temporarily unavailable.  The primary session and message records are
+    # local application data, so commit their deletion regardless.
+    try:
+        delete_session_collections(session_id)
+    except Exception:
+        logger.exception("Could not remove session vectors", extra={"session_id": session_id})
     if session.file_storage_path:
-        delete_file(session.file_storage_path)
+        try:
+            delete_file(session.file_storage_path)
+        except Exception:
+            logger.exception("Could not remove session file", extra={"session_id": session_id})
 
     db.delete(session)
     db.commit()

@@ -109,7 +109,8 @@ export default function Sidebar() {
 
   const handleRename = async (id: number) => {
     const trimmed = editTitle.trim();
-    if (trimmed) await renameSession(id, trimmed);
+    if (!trimmed) return;
+    await renameSession(id, trimmed);
     setEditingId(null);
   };
 
@@ -279,14 +280,22 @@ export default function Sidebar() {
                               {editingId === s.id ? (
                                 <>
                                   <button
-                                    onClick={() => handleRename(s.id)}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handleRename(s.id);
+                                    }}
                                     className="p-1 rounded hover:text-green-400 transition-colors"
                                     title="Save"
                                   >
                                     <Check size={11} />
                                   </button>
                                   <button
-                                    onClick={() => setEditingId(null)}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingId(null);
+                                    }}
                                     className="p-1 rounded hover:text-red-400 transition-colors"
                                     title="Cancel"
                                   >
@@ -297,8 +306,10 @@ export default function Sidebar() {
                                 <div className="flex items-center gap-1 bg-red-950/60 border border-red-500/30 rounded-lg px-2 py-0.5">
                                   <span className="text-[10px] text-red-400">Delete?</span>
                                   <button
-                                    onClick={() => {
-                                      deleteSession(s.id);
+                                    type="button"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await deleteSession(s.id);
                                       setConfirmDeleteId(null);
                                     }}
                                     className="p-0.5 rounded hover:text-red-300 text-red-400 transition-colors"
@@ -307,7 +318,11 @@ export default function Sidebar() {
                                     <Check size={11} />
                                   </button>
                                   <button
-                                    onClick={() => setConfirmDeleteId(null)}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmDeleteId(null);
+                                    }}
                                     className="p-0.5 rounded hover:text-foreground text-muted transition-colors"
                                     title="Cancel"
                                   >
@@ -317,7 +332,9 @@ export default function Sidebar() {
                               ) : (
                                 <>
                                   <button
-                                    onClick={() => {
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setEditingId(s.id);
                                       setEditTitle(s.title ?? "");
                                     }}
@@ -349,14 +366,22 @@ export default function Sidebar() {
                                     <FileText size={11} />
                                   </button>
                                   <button
-                                    onClick={() => clearHistory(s.id)}
+                                    type="button"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await clearHistory(s.id);
+                                    }}
                                     className="p-1 rounded hover:text-yellow-400 transition-colors"
                                     title="Clear chat history"
                                   >
                                     <Eraser size={11} />
                                   </button>
                                   <button
-                                    onClick={() => setConfirmDeleteId(s.id)}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmDeleteId(s.id);
+                                    }}
                                     className="p-1 rounded hover:text-red-400 transition-colors"
                                     title="Delete conversation"
                                   >

@@ -198,8 +198,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({ messages: history });
       }
       toast.success("Conversation deleted");
-    } catch {
-      toast.error("Could not delete conversation");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not delete conversation");
     }
   },
 
@@ -216,8 +216,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         memoryItems: [],
       }));
       toast.success("Chat history cleared");
-    } catch {
-      toast.error("Could not clear history");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not clear history");
     }
   },
 
@@ -227,8 +227,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set((state) => ({
         sessions: state.sessions.map((s) => (s.id === id ? updated : s)),
       }));
-    } catch {
-      toast.error("Could not rename conversation");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not rename conversation");
     }
   },
 

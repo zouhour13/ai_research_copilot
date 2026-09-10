@@ -40,13 +40,19 @@ export async function renameSession(id: number, title: string): Promise<Session>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
   });
-  if (!res.ok) throw new Error("Failed to rename session");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(errorDetail(err, "Failed to rename session"));
+  }
   return res.json();
 }
 
 export async function deleteSession(id: number): Promise<void> {
   const res = await fetch(`${API_BASE}/sessions/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete session");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(errorDetail(err, "Failed to delete session"));
+  }
 }
 
 /**
@@ -141,7 +147,10 @@ export async function getChatHistory(sessionId: number): Promise<Message[]> {
 
 export async function clearMessages(sessionId: number): Promise<void> {
   const res = await fetch(`${API_BASE}/chat/${sessionId}/messages`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to clear messages");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(errorDetail(err, "Failed to clear messages"));
+  }
 }
 
 export async function exportSession(
