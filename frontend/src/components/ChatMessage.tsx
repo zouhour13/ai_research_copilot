@@ -6,10 +6,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Copy, Check, Cpu, User } from "lucide-react";
+import { BookOpen, Copy, Check, Cpu, User } from "lucide-react";
 import { useState } from "react";
 import SourceCard from "./SourceCard";
 import ThinkingDots from "./ThinkingDots";
+import { useAppStore } from "@/lib/store";
 
 interface Props {
   message: Message;
@@ -42,6 +43,7 @@ function CopyButton({ text }: { text: string }) {
 
 export default function ChatMessage({ message, index }: Props) {
   const isUser = message.role === "user";
+  const selectSourceMessage = useAppStore((state) => state.selectSourceMessage);
 
   if (isUser) {
     // ── User message — right-aligned, clean pill style ───────────────
@@ -284,6 +286,16 @@ export default function ChatMessage({ message, index }: Props) {
               </span>
             )}
             <CopyButton text={message.content} />
+            {message.sources && message.sources.length > 0 && (
+              <button
+                onClick={() => selectSourceMessage(index)}
+                className="view-sources-btn"
+                title="Show these sources in the side panel"
+              >
+                <BookOpen size={11} />
+                View sources
+              </button>
+            )}
           </div>
         )}
       </div>

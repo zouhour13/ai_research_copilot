@@ -48,8 +48,10 @@ interface AppStore {
   // ── Right panel ───────────────────────────────────────────────────
   isRightPanelOpen: boolean;
   rightPanelTab: "sources" | "memory" | "agent";
+  selectedSourceMessageIndex: number | null;
   toggleRightPanel: () => void;
   setRightPanelTab: (tab: "sources" | "memory" | "agent") => void;
+  selectSourceMessage: (index: number) => void;
 
   // ── Core actions ──────────────────────────────────────────────────
   loadSessions: () => Promise<void>;
@@ -119,9 +121,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Right panel
   isRightPanelOpen: false,
   rightPanelTab: "sources",
+  selectedSourceMessageIndex: null,
   toggleRightPanel: () =>
     set((state) => ({ isRightPanelOpen: !state.isRightPanelOpen })),
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  selectSourceMessage: (index) =>
+    set({
+      selectedSourceMessageIndex: index,
+      rightPanelTab: "sources",
+      isRightPanelOpen: true,
+    }),
 
   // ── Sessions ──────────────────────────────────────────────────────
   loadSessions: async () => {
@@ -140,7 +149,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   selectSession: async (id) => {
     if (get().activeSessionId === id) return;
-    set({ activeSessionId: id, messages: [], isLoading: true });
+    set({ activeSessionId: id, messages: [], isLoading: true, selectedSourceMessageIndex: null });
     get().clearAgentTrace();
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
     try {
@@ -159,6 +168,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         messages: history,
         isLoading: false,
         isResearchMode: session?.mode === "research" || session?.mode === "hybrid",
+        selectedSourceMessageIndex: null,
       });
     } catch {
       toast.error("Could not load conversation");
@@ -177,6 +187,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         messages: [],
         agentTrace: [],
         agentStatus: "idle",
+        selectedSourceMessageIndex: null,
       }));
     } catch {
       toast.error("Could not create new chat");
@@ -191,7 +202,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const sessions = state.sessions.filter((s) => s.id !== id);
         nextSessionId =
           state.activeSessionId === id ? (sessions[0]?.id ?? null) : state.activeSessionId;
-        return { sessions, activeSessionId: nextSessionId, messages: [] };
+        return { sessions, activeSessionId: nextSessionId, messages: [], selectedSourceMessageIndex: null };
       });
       if (nextSessionId) {
         const history = await getChatHistory(nextSessionId);
@@ -214,6 +225,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         agentTrace: [],
         agentStatus: "idle",
         memoryItems: [],
+        selectedSourceMessageIndex: null,
       }));
       toast.success("Chat history cleared");
     } catch (err: unknown) {
@@ -286,11 +298,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
         (sources) => {
           set((state) => {
             const newMessages = [...state.messages];
-            const lastMsg = newMessages[newMessages.length - 1];
+            const sourceMessageIndex = newMessages.length - 1;
+            const lastMsg = newMessages[sourceMessageIndex];
             if (lastMsg && lastMsg.role === "assistant") {
               lastMsg.sources = sources;
             }
-            return { messages: newMessages, isRightPanelOpen: sources.length > 0 };
+            return {
+              messages: newMessages,
+              isRightPanelOpen: sources.length > 0,
+              rightPanelTab: sources.length > 0 ? "sources" : state.rightPanelTab,
+              selectedSourceMessageIndex: sources.length > 0
+                ? sourceMessageIndex
+                : state.selectedSourceMessageIndex,
+            };
           });
         },
         (title) => {

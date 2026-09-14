@@ -14,8 +14,24 @@ const TABS = [
 ];
 
 export default function RightPanel() {
-  const { rightPanelTab, setRightPanelTab, toggleRightPanel, messages } = useAppStore();
-  const currentSources = messages.findLast((m) => m.role === "assistant" && m.sources?.length)?.sources ?? [];
+  const {
+    rightPanelTab,
+    setRightPanelTab,
+    toggleRightPanel,
+    messages,
+    selectedSourceMessageIndex,
+    selectSourceMessage,
+  } = useAppStore();
+  const sourcedMessages = messages
+    .map((message, index) => ({ message, index }))
+    .filter(({ message }) => message.role === "assistant" && message.sources?.length);
+  const selectedSourcesMessage =
+    sourcedMessages.find(({ index }) => index === selectedSourceMessageIndex) ??
+    sourcedMessages.at(-1);
+  const currentSources = selectedSourcesMessage?.message.sources ?? [];
+  const currentSourceNumber = selectedSourcesMessage
+    ? sourcedMessages.findIndex(({ index }) => index === selectedSourcesMessage.index) + 1
+    : 0;
 
   return (
     <div className="right-panel-inner">
@@ -69,7 +85,28 @@ export default function RightPanel() {
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.15 }}
             >
-              <SourcePanel sources={currentSources} />
+              {sourcedMessages.length > 1 && (
+                <div className="source-answer-switcher" aria-label="Choose answer sources">
+                  {sourcedMessages.map(({ message, index }, i) => {
+                    const isSelected = selectedSourcesMessage?.index === index;
+                    return (
+                      <button
+                        key={message.id ?? index}
+                        onClick={() => selectSourceMessage(index)}
+                        className={`source-answer-chip ${isSelected ? "source-answer-chip-active" : ""}`}
+                        title={message.content}
+                      >
+                        <span>Answer {i + 1}</span>
+                        <strong>{message.sources?.length ?? 0}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <SourcePanel
+                sources={currentSources}
+                label={currentSourceNumber ? `Answer ${currentSourceNumber}` : undefined}
+              />
             </motion.div>
           )}
           {rightPanelTab === "memory" && (

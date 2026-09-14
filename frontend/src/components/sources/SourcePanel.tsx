@@ -12,6 +12,7 @@ interface Source {
 
 interface SourcePanelProps {
   sources: Source[];
+  label?: string;
 }
 
 function getDomain(url: string): string {
@@ -32,7 +33,7 @@ function getFavicon(url: string): string | null {
   }
 }
 
-export default function SourcePanel({ sources }: SourcePanelProps) {
+export default function SourcePanel({ sources, label }: SourcePanelProps) {
   if (!sources || sources.length === 0) {
     return (
       <div className="panel-empty">
@@ -48,6 +49,7 @@ export default function SourcePanel({ sources }: SourcePanelProps) {
   return (
     <div className="source-panel">
       <p className="source-count">
+        {label ? `${label} - ` : ""}
         {sources.length} source{sources.length !== 1 ? "s" : ""}
       </p>
       <div className="source-list">

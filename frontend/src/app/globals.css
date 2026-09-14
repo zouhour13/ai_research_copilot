@@ -272,6 +272,27 @@ body {
 
 /* ── Source panel ───────────────────────────────────────────────────── */
 .source-panel { display: flex; flex-direction: column; gap: 10px; }
+.source-answer-switcher {
+  display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px;
+}
+.source-answer-chip {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  padding: 6px 9px; border-radius: 10px; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.025); color: var(--muted);
+  font-size: 10.5px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.source-answer-chip:hover {
+  color: var(--foreground-dim); border-color: var(--border-2); background: var(--surface-hover);
+}
+.source-answer-chip strong {
+  min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--surface-hover); color: var(--muted);
+  font-size: 10px;
+}
+.source-answer-chip-active {
+  color: var(--accent); border-color: var(--accent-glow); background: var(--accent-dim);
+}
+.source-answer-chip-active strong { background: var(--accent-glow); color: var(--accent); }
 .source-count {
   font-size: 10.5px; color: var(--muted); font-weight: 600;
   letter-spacing: 0.06em; text-transform: uppercase;
@@ -576,6 +597,15 @@ body {
 .source-pill:hover {
   color: var(--foreground); border-color: var(--border-glow);
   background: var(--surface-hover);
+}
+.view-sources-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 9px; border-radius: 9px; border: 1px solid var(--accent-glow);
+  background: var(--accent-dim); color: var(--accent);
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.view-sources-btn:hover {
+  background: var(--accent-glow); color: var(--foreground);
 }
 
 /* Premium workspace refresh */
