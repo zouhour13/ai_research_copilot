@@ -47,6 +47,20 @@ class ResearchAgent:
         self.llm = get_llm()
         self.citation_agent = CitationAgent()
 
+    def _cache_sources_best_effort(self, sources: list[Source], query: str) -> None:
+        """Cache web results without blocking live research answers."""
+        for source in sources:
+            if not source.url or not source.excerpt:
+                continue
+            try:
+                ingest_web_result(source.url, source.title, source.excerpt, query)
+            except Exception as exc:
+                logger.warning(
+                    "Research: web-cache write skipped for %s: %s",
+                    source.url,
+                    exc,
+                )
+
     def _format_sources_text(self, sources: list[Source]) -> str:
         if not sources:
             return "No search results available."
@@ -84,14 +98,13 @@ class ResearchAgent:
             )
             return result
 
-        # Cache new results
-        for s in live_sources:
-            if s.url and s.excerpt:
-                ingest_web_result(s.url, s.title, s.excerpt, query)
-
         all_sources = live_sources
         result.add_step(f"Found {len(all_sources)} web sources", "search")
         logger.info("Research: %d sources found", len(all_sources))
+
+        # Cache new results, but never let cache/storage/vector failures prevent
+        # a live Exa-backed research answer from being generated.
+        self._cache_sources_best_effort(all_sources, query)
 
         # Step 3: synthesise with fresh date-aware prompt
         result.add_step("Synthesising research answer...", "think")
@@ -151,13 +164,14 @@ class ResearchAgent:
             ))
             yield ("agent_step", {"message": "Done", "step_type": "done"})
             return
-        else:
-            for s in live_sources:
-                if s.url and s.excerpt:
-                    ingest_web_result(s.url, s.title, s.excerpt, query)
-
         yield ("agent_step", {"message": f"Found {len(live_sources)} sources", "step_type": "search"})
         yield ("sources", self.citation_agent.format_sources_for_api(live_sources))
+
+        # Persist web cache opportunistically after the frontend already has the
+        # sources. A cache failure should not turn Research mode into chat mode
+        # or an unsourced answer.
+        self._cache_sources_best_effort(live_sources, query)
+
         yield ("agent_step", {"message": "Generating research answer...", "step_type": "think"})
 
         search_results_text = self._format_sources_text(live_sources)
