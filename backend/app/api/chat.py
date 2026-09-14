@@ -36,6 +36,38 @@ def _auto_title(content: str) -> str:
     return title or "New Chat"
 
 
+def _looks_like_live_research_request(content: str) -> bool:
+    """
+    Detect explicit web-research intent when the client sends stale chat mode.
+
+    The frontend still owns the normal mode toggle, but this prevents prompts
+    like "Research the latest..." from silently taking the plain-chat path.
+    """
+    text = content.lower()
+    action_terms = ("research", "search", "look up", "find sources", "provide sources", "cite sources")
+    freshness_terms = ("latest", "current", "recent", "today", "2026", "this year", "web", "sources")
+    return any(term in text for term in action_terms) and any(term in text for term in freshness_terms)
+
+
+def _resolve_request_mode(
+    content: str,
+    requested_mode: ChatMode | None,
+    stored_mode: ChatMode,
+    has_document: bool,
+) -> tuple[ChatMode, bool]:
+    """
+    Return the effective route for this message.
+
+    `auto_promoted=True` means the prompt explicitly asks for live/web research
+    but the client/session supplied chat mode. In that case use ResearchAgent
+    instead of allowing a stale Chat-mode request to produce an unsourced answer.
+    """
+    mode = requested_mode or stored_mode
+    if mode == ChatMode.CHAT and _looks_like_live_research_request(content):
+        return (ChatMode.HYBRID if has_document else ChatMode.RESEARCH), True
+    return mode, False
+
+
 # ── POST /chat/{session_id} — non-streaming ────────────────────────────────────
 @router.post("/{session_id}")
 async def chat(
@@ -52,10 +84,14 @@ async def chat(
     if not content:
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
 
-    # Use the mode selected in the composer for this request and persist it so
-    # the next message and a subsequent session reload agree on the route.
-    session_mode = payload.mode or chat_session.mode
-    if payload.mode is not None and chat_session.mode != session_mode:
+    has_document = bool(chat_session.file_search_store_name)
+    session_mode, auto_promoted = _resolve_request_mode(
+        content,
+        payload.mode,
+        chat_session.mode,
+        has_document,
+    )
+    if chat_session.mode != session_mode and (payload.mode is not None or auto_promoted):
         chat_session.mode = session_mode
 
     # Auto-title
@@ -65,7 +101,12 @@ async def chat(
 
     logger.info(
         "Chat request",
-        extra={"session_id": session_id, "mode": session_mode, "content_len": len(content)},
+        extra={
+            "session_id": session_id,
+            "mode": session_mode,
+            "content_len": len(content),
+            "auto_promoted": auto_promoted,
+        },
     )
 
     # Build memory context — includes global cross-session facts
@@ -78,7 +119,7 @@ async def chat(
     orchestrator = AgentOrchestrator(
         session_id=session_id,
         mode=session_mode,
-        has_document=bool(chat_session.file_search_store_name),
+        has_document=has_document,
     )
     result = await orchestrator.run(content, memory_ctx)
 
@@ -128,11 +169,14 @@ async def chat_stream(
     if not content:
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
 
-    # Do not rely only on an earlier PATCH /sessions/{id}/mode request.  The
-    # message itself carries the composer mode, which prevents a Research-mode
-    # UI from being routed as plain Chat when session state is stale.
-    session_mode = payload.mode or chat_session.mode
-    if payload.mode is not None and chat_session.mode != session_mode:
+    has_document = bool(chat_session.file_search_store_name)
+    session_mode, auto_promoted = _resolve_request_mode(
+        content,
+        payload.mode,
+        chat_session.mode,
+        has_document,
+    )
+    if chat_session.mode != session_mode and (payload.mode is not None or auto_promoted):
         chat_session.mode = session_mode
 
     existing = db.exec(select(Message).where(Message.session_id == session_id)).all()
@@ -147,11 +191,14 @@ async def chat_stream(
 
     # Snapshot values for the async generator
     session_title = chat_session.title
-    has_document = bool(chat_session.file_search_store_name)
-
     logger.info(
         "Stream request",
-        extra={"session_id": session_id, "mode": session_mode, "has_document": has_document},
+        extra={
+            "session_id": session_id,
+            "mode": session_mode,
+            "has_document": has_document,
+            "auto_promoted": auto_promoted,
+        },
     )
 
     # Build memory context — includes global cross-session facts
