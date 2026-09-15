@@ -3,6 +3,11 @@ export interface Source {
   url: string;
   excerpt?: string;
   source_type?: "web" | "document";
+  domain?: string;
+  published_date?: string;
+  retrieved_at?: string;
+  rank?: number;
+  quality_score?: number;
 }
 
 export interface Message {

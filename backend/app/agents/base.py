@@ -10,6 +10,11 @@ class Source:
     url: str
     excerpt: str = ""
     source_type: str = "web"  # "web" | "document" | "memory"
+    domain: str = ""
+    published_date: str = ""
+    retrieved_at: str = ""
+    rank: int = 0
+    quality_score: float = 0.0
 
 
 @dataclass

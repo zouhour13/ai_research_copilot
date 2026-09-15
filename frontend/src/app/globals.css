@@ -321,6 +321,15 @@ body {
 }
 .source-title:hover { color: var(--accent); }
 .source-ext-icon { color: var(--muted-2); flex-shrink: 0; }
+.source-meta-row {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
+}
+.source-meta-row span {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 7px;
+  border-radius: 999px; background: rgba(255,255,255,0.035);
+  border: 1px solid var(--border); color: var(--muted);
+  font-size: 9.5px; font-weight: 600;
+}
 .source-excerpt {
   margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;

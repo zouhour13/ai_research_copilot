@@ -8,6 +8,11 @@ interface Source {
   url: string;
   excerpt?: string;
   source_type?: string;
+  domain?: string;
+  published_date?: string;
+  retrieved_at?: string;
+  rank?: number;
+  quality_score?: number;
 }
 
 interface SourcePanelProps {
@@ -56,7 +61,10 @@ export default function SourcePanel({ sources, label }: SourcePanelProps) {
         {sources.map((source, i) => {
           const isDoc = source.source_type === "document" || source.url?.startsWith("page:");
           const faviconUrl = !isDoc ? getFavicon(source.url) : null;
-          const domain = !isDoc ? getDomain(source.url) : null;
+          const domain = !isDoc ? (source.domain || getDomain(source.url)) : null;
+          const quality = typeof source.quality_score === "number"
+            ? Math.round(source.quality_score * 100)
+            : null;
 
           return (
             <motion.div
@@ -110,6 +118,14 @@ export default function SourcePanel({ sources, label }: SourcePanelProps) {
                 <p className="text-[10px] mt-1.5" style={{ color: "var(--muted-2)" }}>
                   {domain}
                 </p>
+              )}
+
+              {!isDoc && (
+                <div className="source-meta-row">
+                  {source.rank ? <span>Rank {source.rank}</span> : null}
+                  {quality !== null ? <span>Quality {quality}%</span> : null}
+                  {source.published_date ? <span>{source.published_date}</span> : null}
+                </div>
               )}
 
               {/* Excerpt */}

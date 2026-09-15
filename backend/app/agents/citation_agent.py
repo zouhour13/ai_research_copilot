@@ -86,6 +86,11 @@ class CitationAgent:
                 "url": s.url,
                 "excerpt": s.excerpt,
                 "source_type": s.source_type,
+                "domain": s.domain,
+                "published_date": s.published_date,
+                "retrieved_at": s.retrieved_at,
+                "rank": s.rank,
+                "quality_score": s.quality_score,
             }
             for s in sources
         ]

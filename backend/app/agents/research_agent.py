@@ -1,5 +1,5 @@
 """
-Research Agent — agentic web search with Exa, ChromaDB web cache, and citations.
+Research Agent — agentic web search with Exa, Supabase web cache, and citations.
 Replaces the old langchain/agents/research_agent.py.
 """
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -10,7 +10,6 @@ from app.llm.factory import get_llm
 from app.agents.base import AgentResult, Source, AgentStep
 from app.agents.citation_agent import CitationAgent
 from app.agents.tools.exa_search import search_web
-from app.vectorstore.retrieval import retrieve_web_cache
 from app.vectorstore.embedding_pipeline import ingest_web_result
 from app.core.logging import get_logger
 
@@ -36,9 +35,11 @@ def _build_research_system() -> str:
 2. **IGNORE your training cutoff.** Your training knowledge cutoff is irrelevant — the search results above contain CURRENT information. Do NOT say "I cannot access information from [year]" or "my knowledge cutoff is...". You have live results.
 3. **Answer entirely from the provided search results.** Cite every factual claim inline using [1], [2], [3] notation matching the numbered sources.
 4. If a search result directly answers the question, present that information as current fact.
-5. If the search results section says "No search results available", say so explicitly and explain the limitation.
-6. Format your response in clean Markdown with headings and bullet points where appropriate.
-7. Distinguish between confirmed facts (from search results) and your own analysis/commentary.
+5. Never cite a source number unless that source actually supports the sentence.
+6. If sources disagree or are weak, say that explicitly instead of smoothing over the uncertainty.
+7. If the search results section says "No search results available", say so explicitly and explain the limitation.
+8. Format your response in clean Markdown with headings and bullet points where appropriate.
+9. Distinguish between confirmed facts (from search results) and your own analysis/commentary.
 """
 
 
@@ -66,8 +67,30 @@ class ResearchAgent:
             return "No search results available."
         lines = []
         for i, s in enumerate(sources, 1):
-            lines.append(f"[{i}] **{s.title}**\nURL: {s.url}\n{s.excerpt}")
+            provenance = [
+                f"URL: {s.url}",
+                f"Domain: {s.domain or 'unknown'}",
+                f"Search rank: {s.rank or i}",
+                f"Quality score: {s.quality_score:.2f}",
+            ]
+            if s.published_date:
+                provenance.append(f"Published: {s.published_date}")
+            if s.retrieved_at:
+                provenance.append(f"Retrieved: {s.retrieved_at}")
+            lines.append(
+                f"[{i}] **{s.title}**\n"
+                + "\n".join(provenance)
+                + f"\nEvidence excerpt:\n{s.excerpt[:1400]}"
+            )
         return "\n\n".join(lines)
+
+    def _failure_answer(self, detail: str) -> str:
+        return (
+            "⚠ **Research search failed.**\n\n"
+            "I could not produce a grounded research answer because live web "
+            f"evidence was unavailable or too weak. {detail}\n\n"
+            "No answer was generated from general model knowledge."
+        )
 
     async def run(
         self,
@@ -77,24 +100,17 @@ class ResearchAgent:
     ) -> AgentResult:
         result = AgentResult(answer="")
 
-        # Step 1: check web cache first
-        result.add_step("Checking web cache...", "retrieve")
-        cached = retrieve_web_cache(query, k=3)
-
-        # Step 2: live search
+        # Step 1: live search. Cached web results are intentionally not used as
+        # the evidence source for Research mode because this mode promises
+        # current, provenance-bearing citations.
         result.add_step(f"Searching the web for: {query[:60]}...", "search")
         live_sources = search_web(query, k=5)
 
         if not live_sources:
             logger.warning("Research: Exa returned 0 results for query: %s", query[:80])
             result.add_step("Web search returned no results", "error")
-            # Do not ask the LLM to answer a live-research request without
-            # live evidence.  That can produce a plausible but stale answer.
-            result.answer = (
-                "⚠ **Web search returned no results.**\n\n"
-                "Research Mode requires a live Exa search, so I won't answer "
-                "this request from general model knowledge. Check the Render "
-                "`EXA_API_KEY` setting and try again."
+            result.answer = self._failure_answer(
+                "Check the Render `EXA_API_KEY` setting, Exa availability, or try a narrower query."
             )
             return result
 
@@ -117,12 +133,24 @@ class ResearchAgent:
             ("human", "{input}"),
         ])
         chain = prompt | self.llm
-        response = await chain.ainvoke({
-            "episodic_summary": episodic_summary or "No prior context.",
-            "search_results": search_results_text,
-            "input": query,
-            "history": working_memory,
-        })
+        try:
+            response = await chain.ainvoke({
+                "episodic_summary": episodic_summary or "No prior context.",
+                "search_results": search_results_text,
+                "input": query,
+                "history": working_memory,
+            })
+        except Exception as exc:
+            logger.exception("Research: LLM generation failed after source retrieval")
+            result.add_step("Answer generation failed after source retrieval", "error")
+            result.answer = (
+                "⚠ **Answer generation failed after sources were retrieved.**\n\n"
+                "Live web sources were found, but the model provider could not generate "
+                f"the final grounded answer right now (`{type(exc).__name__}`). "
+                "Please retry in a moment. I did not fall back to an unsourced answer."
+            )
+            result.sources = all_sources
+            return result
 
         # Step 4: cite
         cited_answer, unique_sources = self.citation_agent.process(
@@ -150,17 +178,9 @@ class ResearchAgent:
                 "message": "⚠ Web search returned no results — check Exa API key or try rephrasing",
                 "step_type": "error",
             })
-            # Surface a clear error in the chat bubble instead of silently falling
-            # back to the LLM's stale training knowledge.
-            yield ("chunk", (
-                "⚠ **Web search returned no results.**\n\n"
-                "Research Mode requires a live Exa web search. The search returned 0 results, "
-                "which typically means:\n"
-                "- The Exa API key is missing or invalid\n"
-                "- Exa's servers are temporarily unreachable\n"
-                "- The query could not be fulfilled by the search provider\n\n"
-                "Please check that `EXA_API_KEY` is set correctly in your `.env` file and try again. "
-                "You can also try rephrasing your question."
+            yield ("chunk", self._failure_answer(
+                "This typically means the Exa API key is missing/invalid, Exa is temporarily unreachable, "
+                "or the query needs to be narrowed."
             ))
             yield ("agent_step", {"message": "Done", "step_type": "done"})
             return
@@ -184,18 +204,39 @@ class ResearchAgent:
         ])
         runnable = prompt | self.llm
 
-        async for event in runnable.astream_events(
-            {
-                "episodic_summary": episodic_summary or "No prior context.",
-                "search_results": search_results_text,
-                "input": query,
-                "history": working_memory,
-            },
-            version="v2",
-        ):
-            if event["event"] == "on_chat_model_stream":
-                chunk = event["data"]["chunk"].content
-                if chunk:
-                    yield ("chunk", chunk)
+        full_text = ""
+        try:
+            async for event in runnable.astream_events(
+                {
+                    "episodic_summary": episodic_summary or "No prior context.",
+                    "search_results": search_results_text,
+                    "input": query,
+                    "history": working_memory,
+                },
+                version="v2",
+            ):
+                if event["event"] == "on_chat_model_stream":
+                    chunk = event["data"]["chunk"].content
+                    if chunk:
+                        full_text += chunk
+                        yield ("chunk", chunk)
+        except Exception as exc:
+            logger.exception("Research stream: LLM generation failed after source retrieval")
+            yield ("agent_step", {
+                "message": "Answer generation failed after sources were retrieved",
+                "step_type": "error",
+            })
+            yield ("chunk", (
+                "\n\n⚠ **Answer generation failed after sources were retrieved.**\n\n"
+                f"The model provider returned `{type(exc).__name__}`. Please retry in a moment. "
+                "I did not fall back to an unsourced answer."
+            ))
+            return
+
+        cited_answer, _ = self.citation_agent.process(full_text, live_sources)
+        if cited_answer.startswith(full_text):
+            suffix = cited_answer[len(full_text):]
+            if suffix:
+                yield ("chunk", suffix)
 
         yield ("agent_step", {"message": "Done", "step_type": "done"})
